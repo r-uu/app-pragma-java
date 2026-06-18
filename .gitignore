@@ -1,0 +1,16 @@
+# Maven build output
+target/
+
+# IntelliJ IDEA — maschinenspezifsiche Dateien nicht teilen
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+
+# Umgebungsspezifische Konfiguration
+*.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
