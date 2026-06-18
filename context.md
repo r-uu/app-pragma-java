@@ -2,11 +2,9 @@
 
 ## Hinweise für KI-Agenten
 
-Diese Datei dient als Kontext-Datei für AI-Agenten wie Claude Code oder Gemini. Sie soll bei jedem Chat mit AI-Agenten berücksichtigt und automatisch aktuell gehalten werden.
+Diese Datei dient als Kontext-Datei für AI-Agenten wie Claude Code oder Gemini. Sie soll bei jedem Chat mit AI-Agenten berücksichtigt und automatisch aktuell gehalten werden. Die context.md Dateien übergeordneter Projekte sind zu berücksichtigen, die dort enthaltenen Regeln werden aber ggf. durch die lokalen context.md Dateien überschrieben.
 
 Diese Datei enthält einen [planerischen (Projektziele)](#projektziele) und einen [operativen Teil (Projektumsetzung)](#projektumsetzung).
-
----
 
 # Projektziele
 
@@ -27,11 +25,11 @@ Die Aufgaben werden in Gruppen (TaskGroups) organisiert.
 
 ## Technische Projektziele
 
-Das Projekt orientiert sich inhaltlich und technisch an den jeeeraaah-Projekten
-[backend](https://github.com/r-uu/main_java) und [frontend](https://github.com/r-uu/main_cmp),
-stellt aber einen echten Neuanfang dar.
+Das Projekt orientiert sich inhaltlich und technisch an den pragma-Projekten [backend](https://github.com/r-uu/main_java) und [frontend](https://github.com/r-uu/main_cmp), stellt aber einen echten Neuanfang dar.
 
----
+### mapstruct
+
+Im alten Backend hat sich mapstruct nicht als sehr hilfreich erwiesen. In diesem Projekt soll mapstruct auf den Prüfstand gestellt werden. Ein Verzicht auf mapstruct ist eine valide Option. AI-Agenten sollen dazu eine sinnvolle Einschätzung abgeben.
 
 # Projektname
 
@@ -50,7 +48,7 @@ stellt aber einen echten Neuanfang dar.
 | `pragma-cmp`   | Kotlin Compose Multiplatform Frontend                        |
 | `ruu-java-lib` | Allgemeine Java-Bibliothek inkl. BOM-Modul (projektübergreifend) |
 
-Das BOM-Modul lebt als Maven-Submodul in `ruu-java-lib` und verwaltet gemeinsame Dependency-Versionen für alle Projekte (pragma, jeeeraaah, weitere). Nicht alle Dependencies werden im BOM verwaltet — nur die projektübergreifend relevanten.
+Das BOM-Modul lebt als Maven-Submodul in `ruu-java-lib` und verwaltet gemeinsame Dependency-Versionen für alle Projekte (pragma, pragma, weitere). Nicht alle Dependencies werden im BOM verwaltet — nur die projektübergreifend relevanten.
 
 ---
 
@@ -161,3 +159,33 @@ public class TaskFx implements ObservableTask<TaskFx> {
 **Nachteil:** Die F-bounded Generik (`T extends Task<T>`) erschwert schichtenübergreifende
 Collections. Wenn `List<Task<?>>` über Schichtgrenzen benötigt wird, kann ein gemeinsamer
 nicht-generischer Basistyp (`RawTask`) ergänzt werden.
+
+---
+
+# Projektumsetzung — aktueller Stand
+
+## Maven-Modulstruktur
+
+```
+app-pragma-java/
+├── pom.xml                     (r-uu.app.pragma, parent: r-uu.bom aus lib-java)
+├── core/                       (r-uu.app.pragma.core)
+│   └── src/main/java/
+│       ├── module-info.java    (de.ruu.app.pragma.core)
+│       └── de/ruu/app/pragma/core/
+│           ├── HasId.java
+│           ├── HasTitle.java
+│           ├── HasParentTask.java
+│           ├── HasSubTasks.java
+│           └── Task.java
+└── bean/                       (r-uu.app.pragma.bean)
+    └── src/main/java/
+        ├── module-info.java    (de.ruu.app.pragma.bean)
+        └── de/ruu/app/pragma/bean/
+            └── TaskBean.java
+```
+
+## Hinweise
+
+- Das BOM (`r-uu.bom:0.0.1`) muss vor dem Build dieses Projekts im lokalen Maven-Repository vorhanden sein (`mvn install` in `lib-java`).
+- Geplante nächste Module: `jpa` (TaskEntity), `dto` (TaskDto), `fx` (TaskFx, ObservableTask).

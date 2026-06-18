@@ -1,0 +1,6 @@
+de/ruu/app/pragma/core/HasParentTask.class
+de/ruu/app/pragma/core/HasSubTasks.class
+de/ruu/app/pragma/core/HasTitle.class
+de/ruu/app/pragma/core/HasId.class
+module-info.class
+de/ruu/app/pragma/core/Task.class
