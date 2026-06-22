@@ -1,0 +1,25 @@
+# Die pragma-DB läuft im gemeinsamen postgres-Container (jeeeraaah/keycloak/lib_test/pragma).
+# Dieser Compose-File wird nur benötigt, wenn kein gemeinsamer Container läuft.
+# DB/User "pragma" manuell anlegen: docker exec postgres psql -U postgres -c "CREATE USER pragma WITH PASSWORD 'pragma'; CREATE DATABASE pragma OWNER pragma;"
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: pragma-postgres
+    environment:
+      POSTGRES_DB: pragma
+      POSTGRES_USER: pragma
+      POSTGRES_PASSWORD: pragma
+    ports:
+      - "5432:5432"
+    volumes:
+      - pragma-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pragma -d pragma"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pragma-postgres-data:

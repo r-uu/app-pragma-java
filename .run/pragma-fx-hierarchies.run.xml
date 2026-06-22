@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="pragma fx:hierarchies" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="graalvm-25" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="de.ruu.app.pragma.fx.task.hierarchy.HierarchiesAppRunner" />
+    <module name="r-uu.app.pragma.fx" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/frontend/fx" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

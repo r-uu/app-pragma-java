@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+    <VBox AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+          AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+
+        <!-- Top bar: group selector + status -->
+        <HBox alignment="CENTER_LEFT" spacing="8">
+            <padding><Insets top="5" right="5" bottom="5" left="5"/></padding>
+            <Label text="group"/>
+            <ComboBox fx:id="cbGroups" minWidth="200"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lblStatus" style="-fx-font-size: 11px; -fx-text-fill: gray;"/>
+        </HBox>
+
+        <!-- SmartGraph panel is added programmatically -->
+        <AnchorPane fx:id="graphContainer" VBox.vgrow="ALWAYS"
+                    maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                    style="-fx-background-color: #1e1e2e;"/>
+
+    </VBox>
+</AnchorPane>

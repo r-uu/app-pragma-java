@@ -1,0 +1,6 @@
+<server>
+	<!-- Minimal user registry so the ORB can initialize in dev -->
+	<basicRegistry id="basic" realm="defaultRealm">
+		<user name="dev" password="dev" passwordEncoding="clear"/>
+	</basicRegistry>
+</server>

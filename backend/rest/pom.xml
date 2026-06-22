@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>r-uu.app.pragma.rest</artifactId>
+  <packaging>war</packaging>
+  <name>${project.artifactId}</name>
+  <description>JAX-RS REST resources for pragma (deployable WAR)</description>
+
+  <parent>
+    <groupId>r-uu</groupId>
+    <artifactId>r-uu.app.pragma.backend</artifactId>
+    <version>0.0.1</version>
+  </parent>
+
+  <dependencies>
+
+    <!-- Internal modules -->
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.dto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.jpa</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <!-- Hibernate is provided via Liberty's lib/global -->
+        <exclusion>
+          <groupId>org.hibernate.orm</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- Jakarta EE APIs (provided by Liberty) -->
+    <dependency>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.persistence</groupId>
+      <artifactId>jakarta.persistence-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.transaction</groupId>
+      <artifactId>jakarta.transaction-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Jackson — JSON provider for JAX-RS (bundled in WAR) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+      <artifactId>jackson-jakarta-rs-json-provider</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+      </plugin>
+
+      <!-- Copy Hibernate JARs and PostgreSQL driver to Liberty's global library directory -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-liberty-global-libs</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.hibernate.orm</groupId>
+                  <artifactId>hibernate-core</artifactId>
+                  <version>6.6.5.Final</version>
+                  <destFileName>hibernate-core-6.6.5.Final.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.hibernate.common</groupId>
+                  <artifactId>hibernate-commons-annotations</artifactId>
+                  <version>7.0.3.Final</version>
+                  <destFileName>hibernate-commons-annotations-7.0.3.Final.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>net.bytebuddy</groupId>
+                  <artifactId>byte-buddy</artifactId>
+                  <version>1.18.4</version>
+                  <destFileName>byte-buddy-1.18.4.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.antlr</groupId>
+                  <artifactId>antlr4-runtime</artifactId>
+                  <version>4.13.2</version>
+                  <destFileName>antlr4-runtime-4.13.2.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>io.smallrye</groupId>
+                  <artifactId>jandex</artifactId>
+                  <version>3.2.3</version>
+                  <destFileName>jandex-3.2.3.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.fasterxml</groupId>
+                  <artifactId>classmate</artifactId>
+                  <version>1.7.3</version>
+                  <destFileName>classmate-1.7.3.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.jboss.logging</groupId>
+                  <artifactId>jboss-logging</artifactId>
+                  <version>3.6.1.Final</version>
+                  <destFileName>jboss-logging-3.6.1.Final.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.postgresql</groupId>
+                  <artifactId>postgresql</artifactId>
+                  <version>42.7.8</version>
+                  <destFileName>postgresql-42.7.8.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.basedir}/src/main/liberty/config/lib/global</outputDirectory>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Liberty Maven Plugin -->
+      <plugin>
+        <groupId>io.openliberty.tools</groupId>
+        <artifactId>liberty-maven-plugin</artifactId>
+        <configuration>
+          <serverName>defaultServer</serverName>
+          <appsDirectory>apps</appsDirectory>
+          <serverXmlFile>${project.basedir}/src/main/liberty/config/server.xml</serverXmlFile>
+          <configDirectory>${project.basedir}/src/main/liberty/config</configDirectory>
+          <installAppPackages>all</installAppPackages>
+          <generateFeatures>false</generateFeatures>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>

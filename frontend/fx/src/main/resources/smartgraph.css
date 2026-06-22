@@ -1,0 +1,41 @@
+/* SmartGraph stylesheet for pragma Graph View */
+
+.edge {
+    -fx-stroke-width: 1.5;
+    -fx-stroke: #aaaaaa;
+    -fx-stroke-dash-array: none;
+    -fx-fill: transparent;
+    -fx-opacity: 0.9;
+}
+
+.vertex {
+    -fx-background-color: #4a90d9;
+    -fx-border-color: #2a60a9;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 50%;
+    -fx-background-radius: 50%;
+    -fx-opacity: 0.9;
+}
+
+.vertex:hover {
+    -fx-background-color: #5ba3ed;
+    -fx-cursor: hand;
+}
+
+.vertex-label {
+    -fx-font: bold 9pt "sans-serif";
+    -fx-fill: white;
+    -fx-text-alignment: center;
+}
+
+.arrow {
+    -fx-stroke-width: 1.5;
+    -fx-stroke: #aaaaaa;
+    -fx-fill: #aaaaaa;
+    -fx-opacity: 0.9;
+}
+
+.edge-label {
+    -fx-font: 8pt "sans-serif";
+    -fx-fill: #cccccc;
+}

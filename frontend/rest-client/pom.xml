@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>r-uu.app.pragma.rest-client</artifactId>
+  <name>${project.artifactId}</name>
+  <description>JAX-RS REST client for the pragma backend</description>
+
+  <parent>
+    <groupId>r-uu</groupId>
+    <artifactId>r-uu.app.pragma.frontend</artifactId>
+    <version>0.0.1</version>
+  </parent>
+
+  <dependencies>
+
+    <!-- Internal modules -->
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.dto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.bean</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- Jakarta EE APIs -->
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+    </dependency>
+
+    <!-- JAX-RS client (Jersey) -->
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.inject</groupId>
+      <artifactId>jersey-hk2</artifactId>
+    </dependency>
+
+    <!-- Jackson for JSON -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jdk8</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.jakarta.rs</groupId>
+      <artifactId>jackson-jakarta-rs-json-provider</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.lib.junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- SmallRye Config: MicroProfile Config implementation -->
+    <dependency>
+      <groupId>io.smallrye.config</groupId>
+      <artifactId>smallrye-config</artifactId>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <!-- Exclude module-info.java from test compilation (Weld / Jersey reflection) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-testCompile</id>
+            <phase>test-compile</phase>
+            <goals><goal>testCompile</goal></goals>
+            <configuration>
+              <testExcludes>
+                <testExclude>**/module-info.java</testExclude>
+              </testExcludes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Failsafe for integration tests (require running Liberty server) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <skipITs>${skipITs}</skipITs>
+          <testFailureIgnore>true</testFailureIgnore>
+          <forkCount>1</forkCount>
+          <reuseForks>false</reuseForks>
+          <argLine>
+            --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.util=ALL-UNNAMED
+          </argLine>
+          <systemPropertyVariables>
+            <pragma.rest-api.host>localhost</pragma.rest-api.host>
+            <pragma.rest-api.port>9090</pragma.rest-api.port>
+          </systemPropertyVariables>
+          <includes>
+            <include>**/*IT.java</include>
+          </includes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>

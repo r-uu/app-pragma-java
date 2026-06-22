@@ -8,9 +8,12 @@ target/
 .idea/shelf/
 
 # Umgebungsspezifische Konfiguration
-*.env
+.env
 .env.local
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Liberty global library — populated at build time by maven-dependency-plugin
+backend/rest/src/main/liberty/config/lib/global/

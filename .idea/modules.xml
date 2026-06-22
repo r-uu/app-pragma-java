@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/r-uu.app.pragma.iml" filepath="$PROJECT_DIR$/r-uu.app.pragma.iml" />
+      <module fileurl="file://$PROJECT_DIR$/core/r-uu.app.pragma.core.iml" filepath="$PROJECT_DIR$/core/r-uu.app.pragma.core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/bean/r-uu.app.pragma.bean.iml" filepath="$PROJECT_DIR$/bean/r-uu.app.pragma.bean.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/r-uu.app.pragma.backend.iml" filepath="$PROJECT_DIR$/backend/r-uu.app.pragma.backend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/dto/r-uu.app.pragma.dto.iml" filepath="$PROJECT_DIR$/backend/dto/r-uu.app.pragma.dto.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/jpa/r-uu.app.pragma.jpa.iml" filepath="$PROJECT_DIR$/backend/jpa/r-uu.app.pragma.jpa.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/rest/r-uu.app.pragma.rest.iml" filepath="$PROJECT_DIR$/backend/rest/r-uu.app.pragma.rest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/frontend/r-uu.app.pragma.frontend.iml" filepath="$PROJECT_DIR$/frontend/r-uu.app.pragma.frontend.iml" />
+      <module fileurl="file://$PROJECT_DIR$/frontend/fx/r-uu.app.pragma.fx.iml" filepath="$PROJECT_DIR$/frontend/fx/r-uu.app.pragma.fx.iml" />
+      <module fileurl="file://$PROJECT_DIR$/frontend/rest-client/r-uu.app.pragma.rest-client.iml" filepath="$PROJECT_DIR$/frontend/rest-client/r-uu.app.pragma.rest-client.iml" />
+    </modules>
+  </component>
+</project>

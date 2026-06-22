@@ -1,0 +1,65 @@
+<!-- xml -->
+<server description="pragma server">
+
+  <featureManager>
+    <feature>jakartaee-10.0</feature>
+    <feature>microProfile-6.1</feature>
+  </featureManager>
+
+  <httpEndpoint id="defaultHttpEndpoint"
+      httpPort="${default_http_port}"
+      httpsPort="${default_https_port}"
+      host="${default_host_name}" />
+
+  <authData id="datasource_postgresql_auth"
+      user="${datasource_database_username}"
+      password="${datasource_database_password}" />
+
+  <keyStore id="defaultKeyStore" password="${default_keystore_password}" />
+  <ssl id="defaultSSLConfig" keyStoreRef="defaultKeyStore" />
+
+  <!-- Global library: Hibernate JARs + PostgreSQL JDBC driver.
+       Populated automatically during Maven build by maven-dependency-plugin. -->
+  <library id="globalLibrary">
+    <fileset dir="${server.config.dir}/lib/global" includes="*.jar" />
+  </library>
+
+  <dataSource id="datasource_postgresql"
+      jndiName="jdbc/pragma"
+      type="javax.sql.DataSource"
+      authDataRef="datasource_postgresql_auth">
+    <jdbcDriver libraryRef="globalLibrary" />
+    <properties.postgresql
+        serverName="${datasource_server_host}"
+        portNumber="${datasource_server_port}"
+        databaseName="${datasource_database}"
+        user="${datasource_database_username}"
+        password="${datasource_database_password}"
+        currentSchema="public" />
+  </dataSource>
+
+  <jpa defaultPersistenceProvider="org.hibernate.jpa.HibernatePersistenceProvider"
+      enableJPA="true"
+      enableBeanValidation="true"
+      defaultJtaDataSourceRef="jdbc/pragma" />
+
+  <application id="pragma"
+      name="pragma"
+      type="war"
+      contextRoot="/pragma"
+      location="r-uu.app.pragma.rest-0.0.1.war" />
+
+  <jvmOptions>
+    <option value="-Xms256m" />
+    <option value="-Xmx1024m" />
+    <option value="-Dfile.encoding=UTF-8" />
+    <option value="-Duser.timezone=UTC" />
+    <option value="-Dnet.bytebuddy.experimental=true" />
+  </jvmOptions>
+
+  <logging
+      traceSpecification="com.ibm.ws.jpa.*=all:com.ibm.ws.jaxrs.*=all"
+      maxFileSize="20"
+      maxFiles="10" />
+
+</server>

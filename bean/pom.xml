@@ -21,6 +21,15 @@
       <artifactId>r-uu.app.pragma.core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.dto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
   </dependencies>
 
 </project>

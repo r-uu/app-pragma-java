@@ -1,2 +1,5 @@
-module-info.class
 de/ruu/app/pragma/bean/TaskBean.class
+de/ruu/app/pragma/bean/package-info.class
+de/ruu/app/pragma/bean/Mappings.class
+de/ruu/app/pragma/bean/TaskGroupBean.class
+module-info.class

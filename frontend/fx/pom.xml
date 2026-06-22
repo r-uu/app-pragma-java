@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>r-uu.app.pragma.fx</artifactId>
+  <name>${project.artifactId}</name>
+  <description>JavaFX UI for pragma (model + FXC views)</description>
+
+  <parent>
+    <groupId>r-uu</groupId>
+    <artifactId>r-uu.app.pragma.frontend</artifactId>
+    <version>0.0.1</version>
+  </parent>
+
+  <dependencies>
+
+    <!-- Internal pragma modules -->
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.bean</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.dto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.app.pragma.rest-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- FXC framework (brings javafx-fxml, cdi.common, cdi.se, util transitively) -->
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.lib.fx.comp</artifactId>
+    </dependency>
+
+    <!-- Weld SE CDI implementation — compile scope overrides BOM test default -->
+    <dependency>
+      <groupId>org.jboss.weld.se</groupId>
+      <artifactId>weld-se-core</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- JavaFX -->
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-base</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-controls</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-fxml</artifactId>
+    </dependency>
+
+    <!-- Jakarta EE APIs -->
+    <dependency>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
+    </dependency>
+
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+
+    <!-- JavaFXSmartGraph for graph view -->
+    <dependency>
+      <groupId>com.brunomnsilva</groupId>
+      <artifactId>smartgraph</artifactId>
+      <version>2.0.0</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>hierarchies</id>
+            <goals><goal>java</goal></goals>
+            <configuration>
+              <mainClass>de.ruu.app.pragma.fx.task.hierarchy.HierarchiesAppRunner</mainClass>
+            </configuration>
+          </execution>
+          <execution>
+            <id>gantt</id>
+            <goals><goal>java</goal></goals>
+            <configuration>
+              <mainClass>de.ruu.app.pragma.fx.task.gantt.GanttAppRunner</mainClass>
+            </configuration>
+          </execution>
+          <execution>
+            <id>graph</id>
+            <goals><goal>java</goal></goals>
+            <configuration>
+              <mainClass>de.ruu.app.pragma.fx.task.graph.GraphAppRunner</mainClass>
+            </configuration>
+          </execution>
+          <execution>
+            <id>pragma</id>
+            <goals><goal>java</goal></goals>
+            <configuration>
+              <mainClass>de.ruu.app.pragma.fx.PragmaAppRunner</mainClass>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

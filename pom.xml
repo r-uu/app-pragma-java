@@ -23,6 +23,8 @@
   <modules>
     <module>core</module>
     <module>bean</module>
+    <module>backend</module>
+    <module>frontend</module>
   </modules>
 
 </project>

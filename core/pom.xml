@@ -15,4 +15,29 @@
     <version>0.0.1</version>
   </parent>
 
+  <dependencies>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.lib.jpa.core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <!-- core has only interfaces — no JPA entities, no MapStruct mappers -->
+          <proc>none</proc>
+          <annotationProcessorPaths combine.children="override"/>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>

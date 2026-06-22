@@ -1,7 +1,8 @@
 package de.ruu.app.pragma.core;
 
+import java.util.Optional;
+
 public interface HasParentTask<T>
 {
-    T    getParentTask();
-    void setParentTask(T parentTask);
+    Optional<T> parentTask();
 }

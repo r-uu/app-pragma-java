@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
+            maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+
+    <TabPane AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+             AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
+             tabClosingPolicy="UNAVAILABLE">
+
+        <Tab text="Hierarchies">
+            <AnchorPane fx:id="paneHierarchies"
+                        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"/>
+        </Tab>
+
+        <Tab text="Gantt">
+            <AnchorPane fx:id="paneGantt"
+                        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"/>
+        </Tab>
+
+        <Tab text="Graph">
+            <AnchorPane fx:id="paneGraph"
+                        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"/>
+        </Tab>
+
+    </TabPane>
+
+</AnchorPane>
