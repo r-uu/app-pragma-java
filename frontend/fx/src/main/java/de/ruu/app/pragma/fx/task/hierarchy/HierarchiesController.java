@@ -1,9 +1,9 @@
 package de.ruu.app.pragma.fx.task.hierarchy;
 
+import de.ruu.app.pragma.bean.TaskBean;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.app.pragma.client.TaskClient;
 import de.ruu.app.pragma.client.TaskGroupClient;
-import de.ruu.app.pragma.dto.TaskDto;
-import de.ruu.app.pragma.dto.TaskGroupDto;
 import de.ruu.lib.fx.comp.FXCController.DefaultFXCController;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
@@ -12,9 +12,12 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
@@ -39,34 +42,49 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
     // ── top bar ──────────────────────────────────────────────────────────────
 
-    @FXML private ComboBox<TaskGroupDto> cbGroups;
+    @FXML private ComboBox<TaskGroupBean> cbGroups;
 
     // ── predecessor panel ────────────────────────────────────────────────────
 
-    @FXML private TreeView<TaskDto> tvPredecessors;
-    @FXML private Button            btnAddPred;
-    @FXML private Button            btnEditPred;
-    @FXML private Button            btnDelPred;
-    @FXML private TextField         tfIdPred;
-    @FXML private TextField         tfNamePred;
+    @FXML private TreeView<TaskBean> tvPredecessors;
+    @FXML private Button             btnAddPred;
+    @FXML private Button             btnEditPred;
+    @FXML private Button             btnDelPred;
+    @FXML private TextField          tfIdPred;
+    @FXML private TextField          tfNamePred;
+    @FXML private DatePicker         dpPlannedStartPred;
+    @FXML private DatePicker         dpPlannedEndPred;
+    @FXML private TextArea           taDescPred;
+    @FXML private CheckBox           cbClosedPred;
+    @FXML private Button             btnSaveDatesPred;
 
     // ── super/sub panel (center — drives the other two) ──────────────────────
 
-    @FXML private TreeView<TaskDto> tvSuperSub;
-    @FXML private Button            btnAddTask;
-    @FXML private Button            btnEditTask;
-    @FXML private Button            btnDelTask;
-    @FXML private TextField         tfIdSuperSub;
-    @FXML private TextField         tfNameSuperSub;
+    @FXML private TreeView<TaskBean> tvSuperSub;
+    @FXML private Button             btnAddTask;
+    @FXML private Button             btnEditTask;
+    @FXML private Button             btnDelTask;
+    @FXML private TextField          tfIdSuperSub;
+    @FXML private TextField          tfNameSuperSub;
+    @FXML private DatePicker         dpPlannedStartSuperSub;
+    @FXML private DatePicker         dpPlannedEndSuperSub;
+    @FXML private TextArea           taDescSuperSub;
+    @FXML private CheckBox           cbClosedSuperSub;
+    @FXML private Button             btnSaveDatesSuperSub;
 
     // ── successor panel ──────────────────────────────────────────────────────
 
-    @FXML private TreeView<TaskDto> tvSuccessors;
-    @FXML private Button            btnAddSucc;
-    @FXML private Button            btnEditSucc;
-    @FXML private Button            btnDelSucc;
-    @FXML private TextField         tfIdSucc;
-    @FXML private TextField         tfNameSucc;
+    @FXML private TreeView<TaskBean> tvSuccessors;
+    @FXML private Button             btnAddSucc;
+    @FXML private Button             btnEditSucc;
+    @FXML private Button             btnDelSucc;
+    @FXML private TextField          tfIdSucc;
+    @FXML private TextField          tfNameSucc;
+    @FXML private DatePicker         dpPlannedStartSucc;
+    @FXML private DatePicker         dpPlannedEndSucc;
+    @FXML private TextArea           taDescSucc;
+    @FXML private CheckBox           cbClosedSucc;
+    @FXML private Button             btnSaveDatesSucc;
 
     // ── injections ───────────────────────────────────────────────────────────
 
@@ -74,7 +92,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @Inject private TaskClient      taskClient;
 
     /** All tasks across all groups — for "pick task" dialogs. */
-    private List<TaskDto> allTasks = List.of();
+    private List<TaskBean> allTasks = List.of();
 
     // ── initialization ───────────────────────────────────────────────────────
 
@@ -97,9 +115,19 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
         // side panel selections update their detail forms
         tvPredecessors.getSelectionModel().selectedItemProperty()
-                      .addListener((obs, old, sel) -> fillDetail(sel, tfIdPred, tfNamePred));
+                      .addListener((obs, old, sel) -> fillDetail(sel, tfIdPred, tfNamePred,
+                                                                  dpPlannedStartPred, dpPlannedEndPred,
+                                                                  taDescPred, cbClosedPred,
+                                                                  btnSaveDatesPred));
         tvSuccessors.getSelectionModel().selectedItemProperty()
-                    .addListener((obs, old, sel) -> fillDetail(sel, tfIdSucc, tfNameSucc));
+                    .addListener((obs, old, sel) -> fillDetail(sel, tfIdSucc, tfNameSucc,
+                                                               dpPlannedStartSucc, dpPlannedEndSucc,
+                                                               taDescSucc, cbClosedSucc,
+                                                               btnSaveDatesSucc));
+
+        btnSaveDatesPred    .setOnAction(e -> saveDates(tvPredecessors));
+        btnSaveDatesSuperSub.setOnAction(e -> saveDates(tvSuperSub));
+        btnSaveDatesSucc    .setOnAction(e -> saveDates(tvSuccessors));
 
         disableAll(true);
         loadGroups();
@@ -111,20 +139,20 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     {
         try
         {
-            List<TaskGroupDto> groups = taskGroupClient.findAll();
+            List<TaskGroupBean> groups = taskGroupClient.findAll();
             cbGroups.getItems().setAll(groups);
             if (!groups.isEmpty()) cbGroups.getSelectionModel().selectFirst();
         }
         catch (Exception e) { log.error("failed to load groups", e); }
     }
 
-    private void loadGroup(TaskGroupDto group)
+    private void loadGroup(TaskGroupBean group)
     {
         try
         {
-            List<TaskDto> tasks = taskClient.findAll(group.id());
+            List<TaskBean> tasks = taskClient.findAll(group.id());
             allTasks = taskClient.findAll(null);
-            TreeItem<TaskDto> root = buildSuperSubTree(tasks);
+            TreeItem<TaskBean> root = buildSuperSubTree(tasks);
             Platform.runLater(() -> {
                 tvSuperSub.setRoot(root);
                 clearSidePanels();
@@ -135,35 +163,37 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         catch (Exception e) { log.error("failed to load group {}", group.name(), e); }
     }
 
-    private void onCenterTaskSelected(TreeItem<TaskDto> item)
+    private void onCenterTaskSelected(TreeItem<TaskBean> item)
     {
         clearSidePanels();
 
         if (item == null || item.getValue() == null)
         {
-            fillDetail(null, tfIdSuperSub, tfNameSuperSub);
+            fillDetail(null, tfIdSuperSub, tfNameSuperSub,
+                       dpPlannedStartSuperSub, dpPlannedEndSuperSub,
+                       taDescSuperSub, cbClosedSuperSub, btnSaveDatesSuperSub);
             updateButtonStates();
             return;
         }
 
-        TaskDto task = item.getValue();
-        fillDetail(item, tfIdSuperSub, tfNameSuperSub);
+        TaskBean task = item.getValue();
+        fillDetail(item, tfIdSuperSub, tfNameSuperSub,
+                   dpPlannedStartSuperSub, dpPlannedEndSuperSub,
+                   taDescSuperSub, cbClosedSuperSub, btnSaveDatesSuperSub);
 
         if (task.id() == null) { updateButtonStates(); return; }
 
         try
         {
-            // Predecessors: load recursively, display RTL (visually: pred ← task)
-            List<TaskDto> preds = taskClient.findPredecessors(task.id());
-            TreeItem<TaskDto> predRoot = new TreeItem<>();
+            List<TaskBean> preds = taskClient.findPredecessors(task.id());
+            TreeItem<TaskBean> predRoot = new TreeItem<>();
             Set<Long> visited = new HashSet<>();
             visited.add(task.id());
             preds.forEach(p -> predRoot.getChildren().add(buildPredecessorNode(p, visited)));
             tvPredecessors.setRoot(predRoot);
 
-            // Successors: load recursively
-            List<TaskDto> succs = taskClient.findSuccessors(task.id());
-            TreeItem<TaskDto> succRoot = new TreeItem<>();
+            List<TaskBean> succs = taskClient.findSuccessors(task.id());
+            TreeItem<TaskBean> succRoot = new TreeItem<>();
             Set<Long> visitedSucc = new HashSet<>();
             visitedSucc.add(task.id());
             succs.forEach(s -> succRoot.getChildren().add(buildSuccessorNode(s, visitedSucc)));
@@ -175,9 +205,9 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     }
 
     /** Recursively builds predecessor tree; visited guards against cycles. */
-    private TreeItem<TaskDto> buildPredecessorNode(TaskDto task, Set<Long> visited)
+    private TreeItem<TaskBean> buildPredecessorNode(TaskBean task, Set<Long> visited)
     {
-        TreeItem<TaskDto> item = new TreeItem<>(task);
+        TreeItem<TaskBean> item = new TreeItem<>(task);
         item.setExpanded(true);
         if (task.id() != null && !visited.contains(task.id()))
         {
@@ -194,9 +224,9 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     }
 
     /** Recursively builds successor tree; visited guards against cycles. */
-    private TreeItem<TaskDto> buildSuccessorNode(TaskDto task, Set<Long> visited)
+    private TreeItem<TaskBean> buildSuccessorNode(TaskBean task, Set<Long> visited)
     {
-        TreeItem<TaskDto> item = new TreeItem<>(task);
+        TreeItem<TaskBean> item = new TreeItem<>(task);
         item.setExpanded(true);
         if (task.id() != null && !visited.contains(task.id()))
         {
@@ -217,7 +247,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onAddTask()
     {
-        TaskGroupDto group = cbGroups.getSelectionModel().getSelectedItem();
+        TaskGroupBean group = cbGroups.getSelectionModel().getSelectedItem();
         if (group == null || group.id() == null) return;
 
         TextInputDialog dlg = new TextInputDialog();
@@ -229,7 +259,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         {
             try
             {
-                taskClient.create(name, group.id());
+                taskClient.create(new TaskBean(group, name));
                 reloadCurrentGroup();
             }
             catch (Exception e) { log.error("failed to create task", e); showError("Aufgabe anlegen", e); }
@@ -239,9 +269,9 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onEditTask()
     {
-        TreeItem<TaskDto> item = tvSuperSub.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> item = tvSuperSub.getSelectionModel().getSelectedItem();
         if (item == null) return;
-        TaskDto task = item.getValue();
+        TaskBean task = item.getValue();
         if (task == null || task.id() == null) return;
 
         TextInputDialog dlg = new TextInputDialog(task.name());
@@ -254,9 +284,11 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             try
             {
                 task.name(name);
-                TaskDto updated = taskClient.update(task.id(), task);
+                TaskBean updated = taskClient.update(task.id(), task);
                 item.setValue(updated);
-                fillDetail(item, tfIdSuperSub, tfNameSuperSub);
+                fillDetail(item, tfIdSuperSub, tfNameSuperSub,
+                           dpPlannedStartSuperSub, dpPlannedEndSuperSub,
+                           taDescSuperSub, cbClosedSuperSub, btnSaveDatesSuperSub);
             }
             catch (Exception e) { log.error("failed to rename task", e); showError("Aufgabe umbenennen", e); }
         });
@@ -265,9 +297,9 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onDelTask()
     {
-        TreeItem<TaskDto> item = tvSuperSub.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> item = tvSuperSub.getSelectionModel().getSelectedItem();
         if (item == null) return;
-        TaskDto task = item.getValue();
+        TaskBean task = item.getValue();
         if (task == null || task.id() == null) return;
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
@@ -290,10 +322,10 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onAddPredecessor()
     {
-        TaskDto centerTask = centerSelected();
+        TaskBean centerTask = centerSelected();
         if (centerTask == null || centerTask.id() == null) return;
 
-        List<TaskDto> current = collectFromTree(tvPredecessors.getRoot());
+        List<TaskBean> current = collectFromTree(tvPredecessors.getRoot());
         Set<Long> excluded = toIds(current);
         excluded.add(centerTask.id());
 
@@ -311,22 +343,20 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onEditPredecessor()
     {
-        TreeItem<TaskDto> item = tvPredecessors.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> item = tvPredecessors.getSelectionModel().getSelectedItem();
         if (item == null) return;
-        editTask(item, tfIdPred, tfNamePred);
+        editTask(item, tfIdPred, tfNamePred, dpPlannedStartPred, dpPlannedEndPred, taDescPred, cbClosedPred, btnSaveDatesPred);
     }
 
     @FXML
     private void onDelPredecessor()
     {
-        TaskDto centerTask = centerSelected();
-        TreeItem<TaskDto> predItem = tvPredecessors.getSelectionModel().getSelectedItem();
+        TaskBean centerTask = centerSelected();
+        TreeItem<TaskBean> predItem = tvPredecessors.getSelectionModel().getSelectedItem();
         if (centerTask == null || centerTask.id() == null || predItem == null) return;
-        TaskDto pred = predItem.getValue();
+        TaskBean pred = predItem.getValue();
         if (pred == null || pred.id() == null) return;
 
-        // Only direct predecessors (root children) can be removed from the center task.
-        // Deeper nodes would need their own direct link removed.
         boolean isDirect = tvPredecessors.getRoot() != null
                 && tvPredecessors.getRoot().getChildren().contains(predItem);
         if (!isDirect)
@@ -349,16 +379,15 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onAddSuccessor()
     {
-        TaskDto centerTask = centerSelected();
+        TaskBean centerTask = centerSelected();
         if (centerTask == null || centerTask.id() == null) return;
 
-        List<TaskDto> current = collectFromTree(tvSuccessors.getRoot());
+        List<TaskBean> current = collectFromTree(tvSuccessors.getRoot());
         Set<Long> excluded = toIds(current);
         excluded.add(centerTask.id());
 
         pickTask("Nachfolger hinzufügen", excluded).ifPresent(succ ->
         {
-            // adding a successor = making centerTask a predecessor of succ
             try
             {
                 taskClient.addPredecessor(succ.id(), centerTask.id());
@@ -371,18 +400,18 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     @FXML
     private void onEditSuccessor()
     {
-        TreeItem<TaskDto> item = tvSuccessors.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> item = tvSuccessors.getSelectionModel().getSelectedItem();
         if (item == null) return;
-        editTask(item, tfIdSucc, tfNameSucc);
+        editTask(item, tfIdSucc, tfNameSucc, dpPlannedStartSucc, dpPlannedEndSucc, taDescSucc, cbClosedSucc, btnSaveDatesSucc);
     }
 
     @FXML
     private void onDelSuccessor()
     {
-        TaskDto centerTask = centerSelected();
-        TreeItem<TaskDto> succItem = tvSuccessors.getSelectionModel().getSelectedItem();
+        TaskBean centerTask = centerSelected();
+        TreeItem<TaskBean> succItem = tvSuccessors.getSelectionModel().getSelectedItem();
         if (centerTask == null || centerTask.id() == null || succItem == null) return;
-        TaskDto succ = succItem.getValue();
+        TaskBean succ = succItem.getValue();
         if (succ == null || succ.id() == null) return;
 
         boolean isDirect = tvSuccessors.getRoot() != null
@@ -402,18 +431,46 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         catch (Exception e) { log.error("failed to remove successor", e); showError("Nachfolger entfernen", e); }
     }
 
+    // ── save task data ────────────────────────────────────────────────────────
+
+    private void saveDates(TreeView<TaskBean> tv)
+    {
+        TreeItem<TaskBean> sel = tv.getSelectionModel().getSelectedItem();
+        if (sel == null || sel.getValue() == null || sel.getValue().id() == null) return;
+
+        TaskBean task = sel.getValue();
+        DatePicker dpStart;
+        DatePicker dpEnd;
+        TextArea   taDesc;
+        CheckBox   cbClosed;
+        if (tv == tvPredecessors)  { dpStart = dpPlannedStartPred;     dpEnd = dpPlannedEndPred;     taDesc = taDescPred;     cbClosed = cbClosedPred;     }
+        else if (tv == tvSuperSub) { dpStart = dpPlannedStartSuperSub; dpEnd = dpPlannedEndSuperSub; taDesc = taDescSuperSub; cbClosed = cbClosedSuperSub; }
+        else                       { dpStart = dpPlannedStartSucc;     dpEnd = dpPlannedEndSucc;     taDesc = taDescSucc;     cbClosed = cbClosedSucc;     }
+
+        task.plannedStart(dpStart.getValue());
+        task.plannedEnd  (dpEnd  .getValue());
+        task.description (taDesc.getText().isBlank() ? null : taDesc.getText());
+        task.closed      (cbClosed.isSelected());
+
+        try
+        {
+            TaskBean updated = taskClient.update(task.id(), task);
+            sel.setValue(updated);
+        }
+        catch (Exception e) { log.error("failed to save task data for {}", task.name(), e); showError("Speichern", e); }
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void reloadCurrentGroup()
     {
-        TaskGroupDto group = cbGroups.getSelectionModel().getSelectedItem();
+        TaskGroupBean group = cbGroups.getSelectionModel().getSelectedItem();
         if (group != null) loadGroup(group);
     }
 
-    private void reloadSidePanels(TaskDto centerTask)
+    private void reloadSidePanels(TaskBean centerTask)
     {
-        // Re-drive from center selection with fresh data
-        TreeItem<TaskDto> centerItem = tvSuperSub.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> centerItem = tvSuperSub.getSelectionModel().getSelectedItem();
         if (centerItem != null && centerItem.getValue() != null
                 && centerTask.id() != null
                 && centerTask.id().equals(centerItem.getValue().id()))
@@ -426,27 +483,52 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     {
         tvPredecessors.setRoot(new TreeItem<>());
         tvSuccessors.setRoot(new TreeItem<>());
-        clearDetail(tfIdPred, tfNamePred);
-        clearDetail(tfIdSucc, tfNameSucc);
+        clearDetail(tfIdPred, tfNamePred, dpPlannedStartPred, dpPlannedEndPred, taDescPred, cbClosedPred, btnSaveDatesPred);
+        clearDetail(tfIdSucc, tfNameSucc, dpPlannedStartSucc, dpPlannedEndSucc, taDescSucc, cbClosedSucc, btnSaveDatesSucc);
     }
 
-    private void fillDetail(TreeItem<TaskDto> item, TextField tfId, TextField tfName)
+    private void fillDetail(TreeItem<TaskBean> item,
+                            TextField tfId, TextField tfName,
+                            DatePicker dpStart, DatePicker dpEnd,
+                            TextArea taDesc, CheckBox cbClosed,
+                            Button btnSave)
     {
-        if (item == null || item.getValue() == null) { clearDetail(tfId, tfName); return; }
-        TaskDto t = item.getValue();
-        tfId  .setText(t.id()   == null ? "" : t.id().toString());
-        tfName.setText(t.name() == null ? "" : t.name());
+        if (item == null || item.getValue() == null)
+        {
+            clearDetail(tfId, tfName, dpStart, dpEnd, taDesc, cbClosed, btnSave);
+            return;
+        }
+        TaskBean t = item.getValue();
+        tfId    .setText(t.id()   == null ? "" : t.id().toString());
+        tfName  .setText(t.name() == null ? "" : t.name());
+        dpStart .setValue(t.plannedStart().orElse(null));
+        dpEnd   .setValue(t.plannedEnd()  .orElse(null));
+        taDesc  .setText(t.description().orElse(""));
+        cbClosed.setSelected(t.closed());
+        btnSave .setDisable(t.id() == null);
     }
 
-    private void clearDetail(TextField tfId, TextField tfName)
+    private void clearDetail(TextField tfId, TextField tfName,
+                             DatePicker dpStart, DatePicker dpEnd,
+                             TextArea taDesc, CheckBox cbClosed,
+                             Button btnSave)
     {
-        tfId  .clear();
-        tfName.clear();
+        tfId    .clear();
+        tfName  .clear();
+        dpStart .setValue(null);
+        dpEnd   .setValue(null);
+        taDesc  .clear();
+        cbClosed.setSelected(false);
+        btnSave .setDisable(true);
     }
 
-    private void editTask(TreeItem<TaskDto> item, TextField tfId, TextField tfName)
+    private void editTask(TreeItem<TaskBean> item,
+                          TextField tfId, TextField tfName,
+                          DatePicker dpStart, DatePicker dpEnd,
+                          TextArea taDesc, CheckBox cbClosed,
+                          Button btnSave)
     {
-        TaskDto task = item.getValue();
+        TaskBean task = item.getValue();
         if (task == null || task.id() == null) return;
 
         TextInputDialog dlg = new TextInputDialog(task.name());
@@ -459,31 +541,31 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             try
             {
                 task.name(name);
-                TaskDto updated = taskClient.update(task.id(), task);
+                TaskBean updated = taskClient.update(task.id(), task);
                 item.setValue(updated);
-                fillDetail(item, tfId, tfName);
+                fillDetail(item, tfId, tfName, dpStart, dpEnd, taDesc, cbClosed, btnSave);
             }
             catch (Exception e) { log.error("failed to rename task", e); showError("Aufgabe umbenennen", e); }
         });
     }
 
-    private TaskDto centerSelected()
+    private TaskBean centerSelected()
     {
-        TreeItem<TaskDto> item = tvSuperSub.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> item = tvSuperSub.getSelectionModel().getSelectedItem();
         return item == null ? null : item.getValue();
     }
 
-    private Optional<TaskDto> pickTask(String title, Set<Long> excludedIds)
+    private Optional<TaskBean> pickTask(String title, Set<Long> excludedIds)
     {
-        List<TaskDto> choices = allTasks.stream()
-                                        .filter(t -> t.id() != null && !excludedIds.contains(t.id()))
-                                        .toList();
+        List<TaskBean> choices = allTasks.stream()
+                                         .filter(t -> t.id() != null && !excludedIds.contains(t.id()))
+                                         .toList();
         if (choices.isEmpty()) return Optional.empty();
 
-        Map<String, TaskDto> byLabel = new LinkedHashMap<>();
-        for (TaskDto t : choices)
+        Map<String, TaskBean> byLabel = new LinkedHashMap<>();
+        for (TaskBean t : choices)
         {
-            String group = t.taskGroup().map(TaskGroupDto::name).orElse("?");
+            String group = t.taskGroup().name();
             byLabel.put(group + " / " + t.name(), t);
         }
         List<String> labels = List.copyOf(byLabel.keySet());
@@ -495,45 +577,45 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     }
 
     /** Collects all task values from a tree (all levels). */
-    private List<TaskDto> collectFromTree(TreeItem<TaskDto> root)
+    private List<TaskBean> collectFromTree(TreeItem<TaskBean> root)
     {
         if (root == null) return List.of();
-        java.util.List<TaskDto> result = new java.util.ArrayList<>();
+        java.util.List<TaskBean> result = new java.util.ArrayList<>();
         collectRecursive(root, result);
         return result;
     }
 
-    private void collectRecursive(TreeItem<TaskDto> item, java.util.List<TaskDto> acc)
+    private void collectRecursive(TreeItem<TaskBean> item, java.util.List<TaskBean> acc)
     {
         if (item.getValue() != null) acc.add(item.getValue());
         item.getChildren().forEach(child -> collectRecursive(child, acc));
     }
 
-    private Set<Long> toIds(List<TaskDto> tasks)
+    private Set<Long> toIds(List<TaskBean> tasks)
     {
         Set<Long> ids = new HashSet<>();
-        tasks.stream().filter(t -> t.id() != null).map(TaskDto::id).forEach(ids::add);
+        tasks.stream().filter(t -> t.id() != null).map(TaskBean::id).forEach(ids::add);
         return ids;
     }
 
     /** Builds the super/sub tree from a flat task list using parentTask references. */
-    private TreeItem<TaskDto> buildSuperSubTree(List<TaskDto> tasks)
+    private TreeItem<TaskBean> buildSuperSubTree(List<TaskBean> tasks)
     {
-        TreeItem<TaskDto>       root = new TreeItem<>();
-        Map<Long, TreeItem<TaskDto>> byId = new HashMap<>();
+        TreeItem<TaskBean>            root = new TreeItem<>();
+        Map<Long, TreeItem<TaskBean>> byId = new HashMap<>();
 
-        for (TaskDto task : tasks)
+        for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
-            TreeItem<TaskDto> item = new TreeItem<>(task);
+            TreeItem<TaskBean> item = new TreeItem<>(task);
             item.setExpanded(true);
             byId.put(task.id(), item);
         }
-        for (TaskDto task : tasks)
+        for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
-            TreeItem<TaskDto> item     = byId.get(task.id());
-            Long              parentId = task.parentTask().map(TaskDto::id).orElse(null);
+            TreeItem<TaskBean> item     = byId.get(task.id());
+            Long               parentId = task.parentTask().map(TaskBean::id).orElse(null);
             if (parentId != null && byId.containsKey(parentId))
                 byId.get(parentId).getChildren().add(item);
             else
@@ -542,11 +624,11 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         return root;
     }
 
-    private void setupTreeView(TreeView<TaskDto> tv)
+    private void setupTreeView(TreeView<TaskBean> tv)
     {
         tv.setCellFactory(v -> new TreeCell<>()
         {
-            @Override protected void updateItem(TaskDto item, boolean empty)
+            @Override protected void updateItem(TaskBean item, boolean empty)
             {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : item.name());
@@ -567,6 +649,9 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         btnAddSucc.setDisable(disabled);
         btnEditSucc.setDisable(disabled);
         btnDelSucc.setDisable(disabled);
+        btnSaveDatesPred    .setDisable(disabled);
+        btnSaveDatesSuperSub.setDisable(disabled);
+        btnSaveDatesSucc    .setDisable(disabled);
     }
 
     private void updateButtonStates()
@@ -587,13 +672,17 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         btnAddSucc .setDisable(noCenterTask);
         btnEditSucc.setDisable(noSuccSelected);
         btnDelSucc .setDisable(noCenterTask || noSuccSelected);
+
+        btnSaveDatesSuperSub.setDisable(noCenterSel);
+        btnSaveDatesPred    .setDisable(noPredSelected);
+        btnSaveDatesSucc    .setDisable(noSuccSelected);
     }
 
-    private ListCell<TaskGroupDto> groupCell()
+    private ListCell<TaskGroupBean> groupCell()
     {
         return new ListCell<>()
         {
-            @Override protected void updateItem(TaskGroupDto item, boolean empty)
+            @Override protected void updateItem(TaskGroupBean item, boolean empty)
             {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : item.name());

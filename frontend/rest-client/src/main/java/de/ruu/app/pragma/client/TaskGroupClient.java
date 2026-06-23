@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.introspect.VisibilityChecker;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
+import de.ruu.app.pragma.bean.Mappings;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.app.pragma.dto.TaskGroupDto;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -25,6 +27,12 @@ import org.glassfish.jersey.client.ClientProperties;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * REST client for task-group operations.
+ *
+ * <p>The public interface works exclusively with {@link TaskGroupBean}.
+ * DTO types are an internal transport detail.
+ */
 @Singleton
 public class TaskGroupClient
 {
@@ -50,47 +58,48 @@ public class TaskGroupClient
         if (client != null) client.close();
     }
 
-    public List<TaskGroupDto> findAll()
+    public List<TaskGroupBean> findAll()
     {
         try (Response response = target("/task-groups").request(MediaType.APPLICATION_JSON).get())
         {
             requireSuccess(response);
-            return response.readEntity(new GenericType<List<TaskGroupDto>>() {});
+            return response.readEntity(new GenericType<List<TaskGroupDto>>() {})
+                           .stream().map(Mappings::toBean).toList();
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public Optional<TaskGroupDto> findById(long id)
+    public Optional<TaskGroupBean> findById(long id)
     {
         try (Response response = target("/task-groups/" + id).request(MediaType.APPLICATION_JSON).get())
         {
             if (response.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) return Optional.empty();
             requireSuccess(response);
-            return Optional.of(response.readEntity(TaskGroupDto.class));
+            return Optional.of(Mappings.toBean(response.readEntity(TaskGroupDto.class)));
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskGroupDto create(TaskGroupDto dto)
+    public TaskGroupBean create(TaskGroupBean bean)
     {
         try (Response response = target("/task-groups")
                 .request(MediaType.APPLICATION_JSON)
-                .post(Entity.json(dto)))
+                .post(Entity.json(Mappings.toDto(bean))))
         {
             requireSuccess(response);
-            return response.readEntity(TaskGroupDto.class);
+            return Mappings.toBean(response.readEntity(TaskGroupDto.class));
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskGroupDto update(long id, TaskGroupDto dto)
+    public TaskGroupBean update(long id, TaskGroupBean bean)
     {
         try (Response response = target("/task-groups/" + id)
                 .request(MediaType.APPLICATION_JSON)
-                .put(Entity.json(dto)))
+                .put(Entity.json(Mappings.toDto(bean))))
         {
             requireSuccess(response);
-            return response.readEntity(TaskGroupDto.class);
+            return Mappings.toBean(response.readEntity(TaskGroupDto.class));
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }

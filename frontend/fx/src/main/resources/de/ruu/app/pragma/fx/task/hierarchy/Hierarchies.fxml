@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.control.TreeView?>
@@ -15,6 +18,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
@@ -42,46 +46,70 @@
                           AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" spacing="3">
                         <padding><Insets top="3" right="5" bottom="5" left="5"/></padding>
 
-                        <!-- Header -->
                         <HBox alignment="CENTER_LEFT" spacing="5">
                             <Label text="predecessor tasks hierarchy"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <HBox spacing="3">
-                                <Button fx:id="btnAddPred"  prefHeight="22" prefWidth="40" text="add"
-                                        onAction="#onAddPredecessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnAddPred" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onAddPredecessor">
+                                    <graphic><FontIcon iconLiteral="far-plus-square" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="add predecessor"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnEditPred" prefHeight="22" prefWidth="40" text="edit"
-                                        onAction="#onEditPredecessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnEditPred" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onEditPredecessor">
+                                    <graphic><FontIcon iconLiteral="far-edit" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="edit selected predecessor"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnDelPred"  prefHeight="22" prefWidth="40" text="del"
-                                        onAction="#onDelPredecessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnDelPred" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onDelPredecessor">
+                                    <graphic><FontIcon iconLiteral="far-trash-alt" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="remove predecessor link"/></tooltip>
                                 </Button>
                             </HBox>
                         </HBox>
 
-                        <!-- Predecessor tree (RTL: predecessors extend left) -->
                         <TreeView fx:id="tvPredecessors" VBox.vgrow="ALWAYS" showRoot="false"
                                   nodeOrientation="RIGHT_TO_LEFT"/>
 
-                        <!-- Detail form -->
                         <GridPane hgap="5" vgap="3">
                             <columnConstraints>
-                                <ColumnConstraints hgrow="NEVER" minWidth="60" halignment="RIGHT"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="22" maxWidth="22"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="80" halignment="RIGHT"/>
                                 <ColumnConstraints hgrow="ALWAYS"/>
                             </columnConstraints>
                             <rowConstraints>
                                 <RowConstraints vgrow="NEVER"/>
                                 <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
                             </rowConstraints>
-                            <Label text="id"   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <!-- save button left of id -->
+                            <Button fx:id="btnSaveDatesPred" mnemonicParsing="false" disable="true"
+                                    prefHeight="20" prefWidth="20"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <graphic><FontIcon iconLiteral="far-save" iconSize="11"/></graphic>
+                                <tooltip><Tooltip text="save task data for selected predecessor"/></tooltip>
+                            </Button>
+                            <Label text="id"            GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                             <TextField fx:id="tfIdPred"   editable="false" style="-fx-background-color: transparent;"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="0" maxWidth="Infinity"/>
-                            <Label text="name" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                            <TextField fx:id="tfNamePred" editable="false"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                                       GridPane.columnIndex="2" GridPane.rowIndex="0" maxWidth="Infinity"/>
+                            <Label text="name"          GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <TextField fx:id="tfNamePred" editable="false" style="-fx-background-color: transparent;"
+                                       GridPane.columnIndex="2" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                            <Label text="planned start" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                            <DatePicker fx:id="dpPlannedStartPred" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                            <Label text="planned end"   GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                            <DatePicker fx:id="dpPlannedEndPred" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+                            <Label text="description"   GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                            <TextArea fx:id="taDescPred" wrapText="true" prefRowCount="2" maxWidth="Infinity"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="4"/>
+                            <Label text="closed"        GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                            <CheckBox fx:id="cbClosedPred"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="5"/>
                         </GridPane>
                     </VBox>
                 </AnchorPane>
@@ -93,45 +121,68 @@
                           AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" spacing="3">
                         <padding><Insets top="3" right="5" bottom="5" left="5"/></padding>
 
-                        <!-- Header -->
                         <HBox alignment="CENTER_LEFT" spacing="5">
                             <Label text="super/sub tasks hierarchy"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <HBox spacing="3">
-                                <Button fx:id="btnAddTask"  prefHeight="22" prefWidth="40" text="add"
-                                        onAction="#onAddTask" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnAddTask" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onAddTask">
+                                    <graphic><FontIcon iconLiteral="far-plus-square" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="add task to group"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnEditTask" prefHeight="22" prefWidth="40" text="edit"
-                                        onAction="#onEditTask" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnEditTask" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onEditTask">
+                                    <graphic><FontIcon iconLiteral="far-edit" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="rename selected task"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnDelTask"  prefHeight="22" prefWidth="40" text="del"
-                                        onAction="#onDelTask" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnDelTask" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onDelTask">
+                                    <graphic><FontIcon iconLiteral="far-trash-alt" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="delete selected task"/></tooltip>
                                 </Button>
                             </HBox>
                         </HBox>
 
-                        <!-- Super/sub tree -->
                         <TreeView fx:id="tvSuperSub" VBox.vgrow="ALWAYS" showRoot="false"/>
 
-                        <!-- Detail form -->
                         <GridPane hgap="5" vgap="3">
                             <columnConstraints>
-                                <ColumnConstraints hgrow="NEVER" minWidth="60" halignment="RIGHT"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="22" maxWidth="22"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="80" halignment="RIGHT"/>
                                 <ColumnConstraints hgrow="ALWAYS"/>
                             </columnConstraints>
                             <rowConstraints>
                                 <RowConstraints vgrow="NEVER"/>
                                 <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
                             </rowConstraints>
-                            <Label text="id"   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Button fx:id="btnSaveDatesSuperSub" mnemonicParsing="false" disable="true"
+                                    prefHeight="20" prefWidth="20"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <graphic><FontIcon iconLiteral="far-save" iconSize="11"/></graphic>
+                                <tooltip><Tooltip text="save task data for selected task"/></tooltip>
+                            </Button>
+                            <Label text="id"            GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                             <TextField fx:id="tfIdSuperSub"   editable="false" style="-fx-background-color: transparent;"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="0" maxWidth="Infinity"/>
-                            <Label text="name" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                            <TextField fx:id="tfNameSuperSub" editable="false"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                                       GridPane.columnIndex="2" GridPane.rowIndex="0" maxWidth="Infinity"/>
+                            <Label text="name"          GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <TextField fx:id="tfNameSuperSub" editable="false" style="-fx-background-color: transparent;"
+                                       GridPane.columnIndex="2" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                            <Label text="planned start" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                            <DatePicker fx:id="dpPlannedStartSuperSub" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                            <Label text="planned end"   GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                            <DatePicker fx:id="dpPlannedEndSuperSub" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+                            <Label text="description"   GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                            <TextArea fx:id="taDescSuperSub" wrapText="true" prefRowCount="2" maxWidth="Infinity"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="4"/>
+                            <Label text="closed"        GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                            <CheckBox fx:id="cbClosedSuperSub"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="5"/>
                         </GridPane>
                     </VBox>
                 </AnchorPane>
@@ -143,45 +194,68 @@
                           AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" spacing="3">
                         <padding><Insets top="3" right="5" bottom="5" left="5"/></padding>
 
-                        <!-- Header -->
                         <HBox alignment="CENTER_LEFT" spacing="5">
                             <Label text="successor tasks hierarchy"/>
                             <Region HBox.hgrow="ALWAYS"/>
                             <HBox spacing="3">
-                                <Button fx:id="btnAddSucc"  prefHeight="22" prefWidth="40" text="add"
-                                        onAction="#onAddSuccessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnAddSucc" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onAddSuccessor">
+                                    <graphic><FontIcon iconLiteral="far-plus-square" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="add successor"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnEditSucc" prefHeight="22" prefWidth="40" text="edit"
-                                        onAction="#onEditSuccessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnEditSucc" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onEditSuccessor">
+                                    <graphic><FontIcon iconLiteral="far-edit" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="edit selected successor"/></tooltip>
                                 </Button>
-                                <Button fx:id="btnDelSucc"  prefHeight="22" prefWidth="40" text="del"
-                                        onAction="#onDelSuccessor" style="-fx-font-size: 11px;">
+                                <Button fx:id="btnDelSucc" mnemonicParsing="false"
+                                        prefHeight="20" prefWidth="20" onAction="#onDelSuccessor">
+                                    <graphic><FontIcon iconLiteral="far-trash-alt" iconSize="11"/></graphic>
                                     <tooltip><Tooltip text="remove successor link"/></tooltip>
                                 </Button>
                             </HBox>
                         </HBox>
 
-                        <!-- Successor tree -->
                         <TreeView fx:id="tvSuccessors" VBox.vgrow="ALWAYS" showRoot="false"/>
 
-                        <!-- Detail form -->
                         <GridPane hgap="5" vgap="3">
                             <columnConstraints>
-                                <ColumnConstraints hgrow="NEVER" minWidth="60" halignment="RIGHT"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="22" maxWidth="22"/>
+                                <ColumnConstraints hgrow="NEVER" minWidth="80" halignment="RIGHT"/>
                                 <ColumnConstraints hgrow="ALWAYS"/>
                             </columnConstraints>
                             <rowConstraints>
                                 <RowConstraints vgrow="NEVER"/>
                                 <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
+                                <RowConstraints vgrow="NEVER"/>
                             </rowConstraints>
-                            <Label text="id"   GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Button fx:id="btnSaveDatesSucc" mnemonicParsing="false" disable="true"
+                                    prefHeight="20" prefWidth="20"
+                                    GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <graphic><FontIcon iconLiteral="far-save" iconSize="11"/></graphic>
+                                <tooltip><Tooltip text="save task data for selected successor"/></tooltip>
+                            </Button>
+                            <Label text="id"            GridPane.columnIndex="1" GridPane.rowIndex="0"/>
                             <TextField fx:id="tfIdSucc"   editable="false" style="-fx-background-color: transparent;"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="0" maxWidth="Infinity"/>
-                            <Label text="name" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                            <TextField fx:id="tfNameSucc" editable="false"
-                                       GridPane.columnIndex="1" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                                       GridPane.columnIndex="2" GridPane.rowIndex="0" maxWidth="Infinity"/>
+                            <Label text="name"          GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                            <TextField fx:id="tfNameSucc" editable="false" style="-fx-background-color: transparent;"
+                                       GridPane.columnIndex="2" GridPane.rowIndex="1" maxWidth="Infinity"/>
+                            <Label text="planned start" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                            <DatePicker fx:id="dpPlannedStartSucc" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+                            <Label text="planned end"   GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                            <DatePicker fx:id="dpPlannedEndSucc" maxWidth="Infinity"
+                                        GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+                            <Label text="description"   GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                            <TextArea fx:id="taDescSucc" wrapText="true" prefRowCount="2" maxWidth="Infinity"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="4"/>
+                            <Label text="closed"        GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                            <CheckBox fx:id="cbClosedSucc"
+                                      GridPane.columnIndex="2" GridPane.rowIndex="5"/>
                         </GridPane>
                     </VBox>
                 </AnchorPane>

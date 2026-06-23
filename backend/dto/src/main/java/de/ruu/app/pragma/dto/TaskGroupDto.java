@@ -46,9 +46,9 @@ public class TaskGroupDto implements TaskGroup<TaskDto>
         Objects.requireNonNull(task, "task");
         if (tasks == null) tasks = new LinkedHashSet<>();
         if (tasks.add(task)) {
-            task.taskGroup()
-                .filter(old -> old != this)
-                .ifPresent(old -> old.tasks().ifPresent(t -> t.remove(task)));
+            // null during construction — see HasTaskGroup javadoc
+            TaskGroupDto old = task.taskGroup();
+            if (old != null && old != this) old.tasks().ifPresent(t -> t.remove(task));
             task.taskGroupInternal(this);
         }
     }

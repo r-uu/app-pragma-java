@@ -21,6 +21,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import org.jspecify.annotations.Nullable;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @Path("/tasks")
@@ -65,6 +68,10 @@ public class TaskResource
         TaskGroupJPA group = em.find(TaskGroupJPA.class, request.groupId());
         if (group == null) throw new NotFoundException("TaskGroup not found: " + request.groupId());
         TaskJPA entity = new TaskJPA(request.name(), group);
+        entity.description (request.description());
+        entity.plannedStart(request.plannedStart());
+        entity.plannedEnd  (request.plannedEnd());
+        entity.closed      (request.closed());
         em.persist(entity);
         return Response.status(Response.Status.CREATED).entity(Mappings.toDto(entity)).build();
     }
@@ -74,9 +81,11 @@ public class TaskResource
     public TaskDto update(@PathParam("id") Long id, TaskDto dto)
     {
         TaskJPA entity = requireTask(id);
-        entity.name(dto.name());
+        entity.name       (dto.name());
+        entity.description(dto.description().orElse(null));
         entity.plannedStart(dto.plannedStart().orElse(null));
         entity.plannedEnd  (dto.plannedEnd()  .orElse(null));
+        entity.closed      (dto.closed());
         return Mappings.toDto(entity);
     }
 
@@ -156,7 +165,7 @@ public class TaskResource
     public Response delete(@PathParam("id") Long id)
     {
         TaskJPA entity = requireTask(id);
-        entity.taskGroup().ifPresent(g -> g.removeTask(entity));
+        entity.taskGroup().removeTask(entity);
         em.remove(entity);
         return Response.noContent().build();
     }
@@ -168,5 +177,11 @@ public class TaskResource
         return entity;
     }
 
-    public record TaskCreateRequest(String name, Long groupId) {}
+    public record TaskCreateRequest(
+        String name, Long groupId,
+        @Nullable String description,
+        @Nullable LocalDate plannedStart,
+        @Nullable LocalDate plannedEnd,
+        boolean closed
+    ) {}
 }

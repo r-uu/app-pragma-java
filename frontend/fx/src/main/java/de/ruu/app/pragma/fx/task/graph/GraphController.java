@@ -6,10 +6,10 @@ import com.brunomnsilva.smartgraph.graphview.ForceDirectedSpringGravityLayoutStr
 import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphProperties;
+import de.ruu.app.pragma.bean.TaskBean;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.app.pragma.client.TaskClient;
 import de.ruu.app.pragma.client.TaskGroupClient;
-import de.ruu.app.pragma.dto.TaskDto;
-import de.ruu.app.pragma.dto.TaskGroupDto;
 import de.ruu.lib.fx.comp.FXCController.DefaultFXCController;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
@@ -34,9 +34,9 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
 {
     private static final Logger log = LoggerFactory.getLogger(GraphController.class);
 
-    @FXML private ComboBox<TaskGroupDto> cbGroups;
-    @FXML private Label                  lblStatus;
-    @FXML private AnchorPane             graphContainer;
+    @FXML private ComboBox<TaskGroupBean> cbGroups;
+    @FXML private Label                   lblStatus;
+    @FXML private AnchorPane              graphContainer;
 
     @Inject private TaskGroupClient taskGroupClient;
     @Inject private TaskClient      taskClient;
@@ -57,29 +57,29 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
     {
         try
         {
-            List<TaskGroupDto> groups = taskGroupClient.findAll();
+            List<TaskGroupBean> groups = taskGroupClient.findAll();
             cbGroups.getItems().setAll(groups);
             if (!groups.isEmpty()) cbGroups.getSelectionModel().selectFirst();
         }
         catch (Exception e) { log.error("failed to load groups", e); }
     }
 
-    private void loadGroup(TaskGroupDto group)
+    private void loadGroup(TaskGroupBean group)
     {
         try
         {
-            List<TaskDto> tasks = taskClient.findAll(group.id());
+            List<TaskBean> tasks = taskClient.findAll(group.id());
             Platform.runLater(() -> buildGraph(tasks));
         }
         catch (Exception e) { log.error("failed to load group {}", group.name(), e); }
     }
 
-    private void buildGraph(List<TaskDto> tasks)
+    private void buildGraph(List<TaskBean> tasks)
     {
         DigraphEdgeList<String, String> digraph = new DigraphEdgeList<>();
         Map<Long, Vertex<String>> vertexById = new HashMap<>();
 
-        for (TaskDto task : tasks)
+        for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
             Vertex<String> v = digraph.insertVertex(task.name());
@@ -87,15 +87,15 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         }
 
         int edgeSeq = 0;
-        for (TaskDto task : tasks)
+        for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
             Vertex<String> vTask = vertexById.get(task.id());
             if (vTask == null) continue;
             try
             {
-                List<TaskDto> preds = taskClient.findPredecessors(task.id());
-                for (TaskDto pred : preds)
+                List<TaskBean> preds = taskClient.findPredecessors(task.id());
+                for (TaskBean pred : preds)
                 {
                     if (pred.id() == null) continue;
                     Vertex<String> vPred = vertexById.get(pred.id());
@@ -166,11 +166,11 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         }
     }
 
-    private ListCell<TaskGroupDto> groupCell()
+    private ListCell<TaskGroupBean> groupCell()
     {
         return new ListCell<>()
         {
-            @Override protected void updateItem(TaskGroupDto item, boolean empty)
+            @Override protected void updateItem(TaskGroupBean item, boolean empty)
             {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : item.name());

@@ -1,35 +1,22 @@
 package de.ruu.app.pragma.fx.task.gantt;
 
+import de.ruu.app.pragma.bean.TaskBean;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.app.pragma.client.TaskClient;
 import de.ruu.app.pragma.client.TaskGroupClient;
-import de.ruu.app.pragma.dto.TaskDto;
-import de.ruu.app.pragma.dto.TaskGroupDto;
 import de.ruu.lib.fx.comp.FXCController.DefaultFXCController;
 import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.TreeItem;
-import javafx.scene.control.TreeTableColumn;
-import javafx.scene.control.TreeTableView;
-import javafx.scene.paint.Color;
+import javafx.scene.control.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 @Dependent
 class GanttController extends DefaultFXCController<Gantt, GanttService> implements GanttService
@@ -38,14 +25,14 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
     // ── top bar ──────────────────────────────────────────────────────────────
 
-    @FXML private ComboBox<TaskGroupDto> cbGroups;
-    @FXML private DatePicker             dtPckrStart;
-    @FXML private DatePicker             dtPckrEnd;
-    @FXML private Button                 btnApply;
+    @FXML private ComboBox<TaskGroupBean> cbGroups;
+    @FXML private DatePicker              dtPckrStart;
+    @FXML private DatePicker              dtPckrEnd;
+    @FXML private Button                  btnApply;
 
     // ── main table ───────────────────────────────────────────────────────────
 
-    @FXML private TreeTableView<TaskDto> ttv;
+    @FXML private TreeTableView<TaskBean> ttv;
 
     // ── detail / edit area ───────────────────────────────────────────────────
 
@@ -60,7 +47,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
     // ── state ────────────────────────────────────────────────────────────────
 
-    private List<TaskDto> currentTasks = List.of();
+    private List<TaskBean> currentTasks = List.of();
 
     // ── initialization ───────────────────────────────────────────────────────
 
@@ -95,14 +82,14 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
     {
         try
         {
-            List<TaskGroupDto> groups = taskGroupClient.findAll();
+            List<TaskGroupBean> groups = taskGroupClient.findAll();
             cbGroups.getItems().setAll(groups);
             if (!groups.isEmpty()) cbGroups.getSelectionModel().selectFirst();
         }
         catch (Exception e) { log.error("failed to load groups", e); }
     }
 
-    private void loadGroup(TaskGroupDto group)
+    private void loadGroup(TaskGroupBean group)
     {
         try
         {
@@ -122,7 +109,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         ttv.getRoot().getChildren().clear();
 
         // Name column (fixed)
-        TreeTableColumn<TaskDto, String> nameCol = new TreeTableColumn<>("task");
+        TreeTableColumn<TaskBean, String> nameCol = new TreeTableColumn<>("task");
         nameCol.setPrefWidth(200);
         nameCol.setMinWidth(100);
         nameCol.setResizable(true);
@@ -138,12 +125,12 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
             String header = d.getDayOfMonth() == 1
                     ? d.getMonth().getDisplayName(TextStyle.SHORT, Locale.getDefault())
                     : String.valueOf(d.getDayOfMonth());
-            TreeTableColumn<TaskDto, String> dayCol = new TreeTableColumn<>(header);
+            TreeTableColumn<TaskBean, String> dayCol = new TreeTableColumn<>(header);
             dayCol.setPrefWidth(28);
             dayCol.setMinWidth(20);
             dayCol.setResizable(false);
             dayCol.setCellValueFactory(cdf -> {
-                TaskDto task = cdf.getValue().getValue();
+                TaskBean task = cdf.getValue().getValue();
                 if (task == null) return new SimpleStringProperty("");
                 LocalDate ps = task.plannedStart().orElse(null);
                 LocalDate pe = task.plannedEnd()  .orElse(null);
@@ -172,19 +159,19 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         }
 
         // Build tree from flat list using parentTask references
-        Map<Long, TreeItem<TaskDto>> byId = new HashMap<>();
-        for (TaskDto t : currentTasks)
+        Map<Long, TreeItem<TaskBean>> byId = new HashMap<>();
+        for (TaskBean t : currentTasks)
         {
             if (t.id() == null) continue;
-            TreeItem<TaskDto> item = new TreeItem<>(t);
+            TreeItem<TaskBean> item = new TreeItem<>(t);
             item.setExpanded(true);
             byId.put(t.id(), item);
         }
-        for (TaskDto t : currentTasks)
+        for (TaskBean t : currentTasks)
         {
             if (t.id() == null) continue;
-            TreeItem<TaskDto> item = byId.get(t.id());
-            Long parentId = t.parentTask().map(TaskDto::id).orElse(null);
+            TreeItem<TaskBean> item = byId.get(t.id());
+            Long parentId = t.parentTask().map(TaskBean::id).orElse(null);
             if (parentId != null && byId.containsKey(parentId))
                 byId.get(parentId).getChildren().add(item);
             else
@@ -192,7 +179,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         }
     }
 
-    private void onTaskSelected(TreeItem<TaskDto> sel)
+    private void onTaskSelected(TreeItem<TaskBean> sel)
     {
         if (sel == null || sel.getValue() == null)
         {
@@ -201,7 +188,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
             btnSaveDates.setDisable(true);
             return;
         }
-        TaskDto task = sel.getValue();
+        TaskBean task = sel.getValue();
         dtPckrTaskStart.setValue(task.plannedStart().orElse(null));
         dtPckrTaskEnd  .setValue(task.plannedEnd()  .orElse(null));
         btnSaveDates.setDisable(task.id() == null);
@@ -209,16 +196,16 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
     private void saveDates()
     {
-        TreeItem<TaskDto> sel = ttv.getSelectionModel().getSelectedItem();
+        TreeItem<TaskBean> sel = ttv.getSelectionModel().getSelectedItem();
         if (sel == null || sel.getValue() == null || sel.getValue().id() == null) return;
 
-        TaskDto task = sel.getValue();
+        TaskBean task = sel.getValue();
         task.plannedStart(dtPckrTaskStart.getValue());
         task.plannedEnd  (dtPckrTaskEnd  .getValue());
 
         try
         {
-            TaskDto updated = taskClient.update(task.id(), task);
+            TaskBean updated = taskClient.update(task.id(), task);
             // update in currentTasks list
             currentTasks = new ArrayList<>(currentTasks);
             currentTasks.replaceAll(t -> t.id() != null && t.id().equals(updated.id()) ? updated : t);
@@ -235,11 +222,11 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         }
     }
 
-    private ListCell<TaskGroupDto> groupCell()
+    private ListCell<TaskGroupBean> groupCell()
     {
         return new ListCell<>()
         {
-            @Override protected void updateItem(TaskGroupDto item, boolean empty)
+            @Override protected void updateItem(TaskGroupBean item, boolean empty)
             {
                 super.updateItem(item, empty);
                 setText(empty || item == null ? null : item.name());

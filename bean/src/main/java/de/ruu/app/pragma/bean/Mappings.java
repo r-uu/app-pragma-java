@@ -4,6 +4,7 @@ import de.ruu.app.pragma.dto.TaskDto;
 import de.ruu.app.pragma.dto.TaskGroupDto;
 
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class Mappings
@@ -15,6 +16,18 @@ public final class Mappings
     public static TaskGroupBean toBean(TaskGroupDto in)
     {
         return toBean(in, new IdentityHashMap<>());
+    }
+
+    public static TaskBean toBean(TaskDto in)
+    {
+        return toBean(in, new IdentityHashMap<>());
+    }
+
+    /** Maps a list of DTOs sharing the same context (avoids duplicate group beans). */
+    public static List<TaskBean> toBean(List<TaskDto> in)
+    {
+        Map<Object, Object> ctx = new IdentityHashMap<>();
+        return in.stream().map(dto -> toBean(dto, ctx)).toList();
     }
 
     static TaskGroupBean toBean(TaskGroupDto in, Map<Object, Object> ctx)
@@ -35,8 +48,8 @@ public final class Mappings
         TaskBean cached = (TaskBean) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupBean group = (TaskGroupBean) ctx.get(in.taskGroup().orElseThrow());
-        if (group == null) group = toBean(in.taskGroup().orElseThrow(), ctx);
+        TaskGroupBean group = (TaskGroupBean) ctx.get(in.taskGroup());
+        if (group == null) group = toBean(in.taskGroup(), ctx);
 
         TaskBean out = new TaskBean(group, in);
         ctx.put(in, out);
@@ -75,6 +88,11 @@ public final class Mappings
         return toDto(in, new IdentityHashMap<>());
     }
 
+    public static TaskDto toDto(TaskBean in)
+    {
+        return toDto(in, new IdentityHashMap<>());
+    }
+
     static TaskGroupDto toDto(TaskGroupBean in, Map<Object, Object> ctx)
     {
         TaskGroupDto cached = (TaskGroupDto) ctx.get(in);
@@ -93,11 +111,16 @@ public final class Mappings
         TaskDto cached = (TaskDto) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupDto group = (TaskGroupDto) ctx.get(in.taskGroup().orElseThrow());
-        if (group == null) group = toDto(in.taskGroup().orElseThrow(), ctx);
+        TaskGroupDto group = (TaskGroupDto) ctx.get(in.taskGroup());
+        if (group == null) group = toDto(in.taskGroup(), ctx);
 
         TaskDto out = new TaskDto(in.name(), group);
         ctx.put(in, out);
+
+        out.description (in.description().orElse(null));
+        out.plannedStart(in.plannedStart().orElse(null));
+        out.plannedEnd  (in.plannedEnd()  .orElse(null));
+        out.closed      (in.closed());
 
         in.parentTask().ifPresent(p -> {
             TaskDto parentDto = (TaskDto) ctx.get(p);

@@ -41,11 +41,17 @@ public class TaskJPA implements TaskEntity<TaskGroupJPA, TaskJPA>
     @Column(nullable = false)
     private String name;
 
+    @Column(length = 4000)
+    private @Nullable String    description;
+
     @Column
     private @Nullable LocalDate plannedStart;
 
     @Column
     private @Nullable LocalDate plannedEnd;
+
+    @Column(nullable = false)
+    private           Boolean   closed = false;
 
     // EAGER: taskGroup is always loaded — Optional.empty() never occurs for a valid task
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
@@ -89,14 +95,18 @@ public class TaskJPA implements TaskEntity<TaskGroupJPA, TaskJPA>
 
     @Override public           TaskJPA name(String name) { this.name = requireNonNull(name, "name"); return this; }
 
-    public Optional<LocalDate> plannedStart() { return Optional.ofNullable(plannedStart); }
-    public Optional<LocalDate> plannedEnd()   { return Optional.ofNullable(plannedEnd);   }
-    public TaskJPA plannedStart(@Nullable LocalDate d) { this.plannedStart = d; return this; }
-    public TaskJPA plannedEnd  (@Nullable LocalDate d) { this.plannedEnd   = d; return this; }
+    @Override public Optional<String>    description () { return Optional.ofNullable(description);  }
+    @Override public Optional<LocalDate> plannedStart() { return Optional.ofNullable(plannedStart); }
+    @Override public Optional<LocalDate> plannedEnd  () { return Optional.ofNullable(plannedEnd);   }
+    @Override public Boolean             closed      () { return closed;                             }
 
-    // ofNullable: taskGroup is transiently null between new TaskJPA() and taskGroupInternal() in addTask()
+    @Override public TaskJPA description (@Nullable String    d) { this.description = d; return this; }
+    @Override public TaskJPA plannedStart(@Nullable LocalDate d) { this.plannedStart = d; return this; }
+    @Override public TaskJPA plannedEnd  (@Nullable LocalDate d) { this.plannedEnd   = d; return this; }
+    @Override public TaskJPA closed      (          Boolean   c) { this.closed       = c; return this; }
+
     @Override
-    public Optional<TaskGroupJPA> taskGroup() { return Optional.ofNullable(taskGroup); }
+    public TaskGroupJPA taskGroup() { return taskGroup; }
 
     @Override
     public TaskJPA taskGroup(TaskGroupJPA group)

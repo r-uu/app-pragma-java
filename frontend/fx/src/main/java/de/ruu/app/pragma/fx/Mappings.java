@@ -35,8 +35,8 @@ public final class Mappings
         TaskFx cached = (TaskFx) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupFx group = (TaskGroupFx) ctx.get(in.taskGroup().orElseThrow());
-        if (group == null) group = toFx(in.taskGroup().orElseThrow(), ctx);
+        TaskGroupFx group = (TaskGroupFx) ctx.get(in.taskGroup());
+        if (group == null) group = toFx(in.taskGroup(), ctx);
 
         TaskFx out = new TaskFx(group, in);
         ctx.put(in, out);
@@ -93,11 +93,16 @@ public final class Mappings
         TaskBean cached = (TaskBean) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupBean group = (TaskGroupBean) ctx.get(in.taskGroup().orElseThrow());
-        if (group == null) group = toBean(in.taskGroup().orElseThrow(), ctx);
+        TaskGroupBean group = (TaskGroupBean) ctx.get(in.taskGroup());
+        if (group == null) group = toBean(in.taskGroup(), ctx);
 
-        TaskBean out = new TaskBean(in.name(), group);
+        TaskBean out = new TaskBean(group, in.name());
         ctx.put(in, out);
+
+        out.description (in.description().orElse(null));
+        out.plannedStart(in.plannedStart().orElse(null));
+        out.plannedEnd  (in.plannedEnd()  .orElse(null));
+        out.closed      (in.closed());
 
         in.parentTask().ifPresent(p -> {
             TaskBean parentBean = (TaskBean) ctx.get(p);

@@ -1,7 +1,7 @@
 package de.ruu.app.pragma.client;
 
-import de.ruu.app.pragma.dto.TaskDto;
-import de.ruu.app.pragma.dto.TaskGroupDto;
+import de.ruu.app.pragma.bean.TaskBean;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.lib.junit.DisabledOnServerNotListening;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +17,7 @@ class TaskClientIT
 {
     private TaskGroupClient groupClient;
     private TaskClient      taskClient;
-    private TaskGroupDto    testGroup;
+    private TaskGroupBean   testGroup;
 
     @BeforeEach
     void setUp()
@@ -27,7 +27,7 @@ class TaskClientIT
         taskClient = new TaskClient();
         taskClient.postConstruct();
 
-        testGroup = groupClient.create(new TaskGroupDto("it-task-group-" + System.currentTimeMillis()));
+        testGroup = groupClient.create(new TaskGroupBean("it-task-group-" + System.currentTimeMillis()));
     }
 
     @AfterEach
@@ -42,7 +42,7 @@ class TaskClientIT
     @Test
     void testFindAllByGroup()
     {
-        List<TaskDto> tasks = taskClient.findAll(testGroup.id());
+        List<TaskBean> tasks = taskClient.findAll(testGroup.id());
         assertThat(tasks).isNotNull();
     }
 
@@ -50,7 +50,7 @@ class TaskClientIT
     void testCreateAndDelete()
     {
         String name = "it-task-" + System.currentTimeMillis();
-        TaskDto created = taskClient.create(name, testGroup.id());
+        TaskBean created = taskClient.create(new TaskBean(testGroup, name));
 
         assertThat(created).isNotNull();
         assertThat(created.id()).isNotNull();
@@ -58,18 +58,18 @@ class TaskClientIT
 
         taskClient.delete(created.id());
 
-        Optional<TaskDto> found = taskClient.findById(created.id());
+        Optional<TaskBean> found = taskClient.findById(created.id());
         assertThat(found).isEmpty();
     }
 
     @Test
     void testUpdate()
     {
-        TaskDto created = taskClient.create("it-update-orig-" + System.currentTimeMillis(), testGroup.id());
+        TaskBean created = taskClient.create(new TaskBean(testGroup, "it-update-orig-" + System.currentTimeMillis()));
         assertThat(created.id()).isNotNull();
 
         created.name("it-update-new-" + System.currentTimeMillis());
-        TaskDto updated = taskClient.update(created.id(), created);
+        TaskBean updated = taskClient.update(created.id(), created);
 
         assertThat(updated.name()).isEqualTo(created.name());
 
@@ -79,10 +79,10 @@ class TaskClientIT
     @Test
     void testFindById()
     {
-        TaskDto created = taskClient.create("it-findbyid-" + System.currentTimeMillis(), testGroup.id());
+        TaskBean created = taskClient.create(new TaskBean(testGroup, "it-findbyid-" + System.currentTimeMillis()));
         assertThat(created.id()).isNotNull();
 
-        Optional<TaskDto> found = taskClient.findById(created.id());
+        Optional<TaskBean> found = taskClient.findById(created.id());
         assertThat(found).isPresent();
         assertThat(found.get().name()).isEqualTo(created.name());
 

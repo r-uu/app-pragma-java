@@ -22,11 +22,13 @@ public class TaskDto implements Task<TaskGroupDto, TaskDto>
     private           String       name;
     private @Nullable TaskDto      parentTask;
     private           TaskGroupDto taskGroup;
-    private @Nullable Set<TaskDto>  subTasks;      // null = not yet loaded
-    private @Nullable Set<TaskDto>  predecessors;  // null = not yet loaded
-    private @Nullable Set<TaskDto>  successors;    // null = not yet loaded
-    private @Nullable LocalDate     plannedStart;
-    private @Nullable LocalDate     plannedEnd;
+    private @Nullable Set<TaskDto> subTasks;      // null = not yet loaded
+    private @Nullable Set<TaskDto> predecessors;  // null = not yet loaded
+    private @Nullable Set<TaskDto> successors;    // null = not yet loaded
+    private @Nullable String       description;
+    private @Nullable LocalDate    plannedStart;
+    private @Nullable LocalDate    plannedEnd;
+    private           Boolean      closed       = false;
 
     /** For JSON deserialization only. */
     protected TaskDto() { name = ""; }
@@ -62,14 +64,18 @@ public class TaskDto implements Task<TaskGroupDto, TaskDto>
     @Override public           Optional<Set<TaskDto>> predecessors()                       { return Optional.ofNullable(predecessors); }
     @Override public           Optional<Set<TaskDto>> successors()                         { return Optional.ofNullable(successors);   }
 
-    public Optional<LocalDate> plannedStart() { return Optional.ofNullable(plannedStart); }
-    public Optional<LocalDate> plannedEnd()   { return Optional.ofNullable(plannedEnd);   }
-    public TaskDto plannedStart(@Nullable LocalDate d) { this.plannedStart = d; return this; }
-    public TaskDto plannedEnd  (@Nullable LocalDate d) { this.plannedEnd   = d; return this; }
+    @Override public Optional<String>    description () { return Optional.ofNullable(description);  }
+    @Override public Optional<LocalDate> plannedStart() { return Optional.ofNullable(plannedStart); }
+    @Override public Optional<LocalDate> plannedEnd  () { return Optional.ofNullable(plannedEnd);   }
+    @Override public Boolean             closed      () { return closed;                             }
 
-    // ofNullable: taskGroup is transiently null between new TaskDto() and taskGroupInternal() in addTask()
+    @Override public TaskDto description (@Nullable String    d) { this.description = d; return this; }
+    @Override public TaskDto plannedStart(@Nullable LocalDate d) { this.plannedStart = d; return this; }
+    @Override public TaskDto plannedEnd  (@Nullable LocalDate d) { this.plannedEnd   = d; return this; }
+    @Override public TaskDto closed      (          Boolean   c) { this.closed       = c; return this; }
+
     @Override
-    public Optional<TaskGroupDto> taskGroup() { return Optional.ofNullable(taskGroup); }
+    public TaskGroupDto taskGroup() { return taskGroup; }
 
     @Override
     public TaskDto taskGroup(TaskGroupDto group)

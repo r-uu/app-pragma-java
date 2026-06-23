@@ -31,11 +31,11 @@
           <entry name="$MAVEN_REPOSITORY$/net/bytebuddy/byte-buddy/1.15.11/byte-buddy-1.15.11.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/jboss/logging/jboss-logging/3.5.0.Final/jboss-logging-3.5.0.Final.jar" />
         </processorPath>
+        <module name="r-uu.app.pragma.rest-client" />
         <module name="r-uu.app.pragma.rest" />
+        <module name="r-uu.app.pragma.dto" />
         <module name="r-uu.app.pragma.bean" />
         <module name="r-uu.app.pragma.fx" />
-        <module name="r-uu.app.pragma.rest-client" />
-        <module name="r-uu.app.pragma.dto" />
         <module name="r-uu.app.pragma.jpa" />
       </profile>
     </annotationProcessing>

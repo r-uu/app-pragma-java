@@ -42,8 +42,8 @@ final class Mappings
         TaskDto cached = (TaskDto) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupDto group = (TaskGroupDto) ctx.get(in.taskGroup().orElseThrow());
-        if (group == null) group = toDto(in.taskGroup().orElseThrow(), ctx);
+        TaskGroupDto group = (TaskGroupDto) ctx.get(in.taskGroup());
+        if (group == null) group = toDto(in.taskGroup(), ctx);
 
         TaskDto out = new TaskDto(group, in);
         ctx.put(in, out);
@@ -72,8 +72,10 @@ final class Mappings
             out.addSuccessor(succDto);
         }));
 
+        out.description (in.description().orElse(null));
         out.plannedStart(in.plannedStart().orElse(null));
         out.plannedEnd  (in.plannedEnd()  .orElse(null));
+        out.closed      (in.closed());
 
         return out;
     }

@@ -40,7 +40,7 @@
             <DatePicker fx:id="dtPckrTaskStart" prefWidth="140"/>
             <Label text="planned end"/>
             <DatePicker fx:id="dtPckrTaskEnd" prefWidth="140"/>
-            <Button fx:id="btnSaveDates" text="save" onAction="#saveDates"
+            <Button fx:id="btnSaveDates" text="save"
                     style="-fx-font-size: 11px;" prefHeight="26"/>
         </HBox>
 

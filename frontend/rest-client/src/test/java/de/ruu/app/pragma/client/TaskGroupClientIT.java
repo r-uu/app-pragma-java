@@ -1,6 +1,6 @@
 package de.ruu.app.pragma.client;
 
-import de.ruu.app.pragma.dto.TaskGroupDto;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.lib.junit.DisabledOnServerNotListening;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +32,7 @@ class TaskGroupClientIT
     @Test
     void testFindAll()
     {
-        List<TaskGroupDto> groups = client.findAll();
+        List<TaskGroupBean> groups = client.findAll();
         assertThat(groups).isNotNull();
     }
 
@@ -40,7 +40,7 @@ class TaskGroupClientIT
     void testCreateAndDelete()
     {
         String name = "it-create-" + System.currentTimeMillis();
-        TaskGroupDto created = client.create(new TaskGroupDto(name));
+        TaskGroupBean created = client.create(new TaskGroupBean(name));
 
         assertThat(created).isNotNull();
         assertThat(created.id()).isNotNull();
@@ -48,7 +48,7 @@ class TaskGroupClientIT
 
         client.delete(created.id());
 
-        Optional<TaskGroupDto> found = client.findById(created.id());
+        Optional<TaskGroupBean> found = client.findById(created.id());
         assertThat(found).isEmpty();
     }
 
@@ -56,11 +56,11 @@ class TaskGroupClientIT
     void testUpdate()
     {
         String originalName = "it-update-orig-" + System.currentTimeMillis();
-        TaskGroupDto created = client.create(new TaskGroupDto(originalName));
+        TaskGroupBean created = client.create(new TaskGroupBean(originalName));
         assertThat(created.id()).isNotNull();
 
         String updatedName = "it-update-new-" + System.currentTimeMillis();
-        TaskGroupDto updated = client.update(created.id(), new TaskGroupDto(updatedName));
+        TaskGroupBean updated = client.update(created.id(), new TaskGroupBean(updatedName));
 
         assertThat(updated.name()).isEqualTo(updatedName);
 
@@ -71,12 +71,12 @@ class TaskGroupClientIT
     void testFindById()
     {
         String name = "it-findbyid-" + System.currentTimeMillis();
-        TaskGroupDto created = client.create(new TaskGroupDto(name));
+        TaskGroupBean created = client.create(new TaskGroupBean(name));
         assertThat(created.id()).isNotNull();
 
-        Optional<TaskGroupDto> found = client.findById(created.id());
+        Optional<TaskGroupBean> found = client.findById(created.id());
         assertThat(found).isPresent();
-        assertThat(found.get().name()).isEqualTo(name);
+        assertThat(found.get().name()).isEqualTo(created.name());
 
         client.delete(created.id());
     }
