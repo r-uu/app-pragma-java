@@ -48,15 +48,29 @@ final class Mappings
         TaskDto out = new TaskDto(group, in);
         ctx.put(in, out);
 
-        // Only parentTask is set — subTasks/predecessors/successors are left null ("not loaded").
-        // addSubTask/addPredecessor/addSuccessor create bidirectional DTO links that cause
-        // circular references (e.g. task→parentTask→subTasks→task) during JSON serialization.
-        // Clients reconstruct the tree from the flat task list using parentTask references.
         in.parentTask().ifPresent(p -> {
             TaskDto parentDto = (TaskDto) ctx.get(p);
             if (parentDto == null) parentDto = toDto(p, ctx);
             out.parentTask(parentDto);
         });
+
+        in.subTasks().ifPresent(children -> children.forEach(child -> {
+            TaskDto childDto = (TaskDto) ctx.get(child);
+            if (childDto == null) childDto = toDto(child, ctx);
+            out.addSubTask(childDto);
+        }));
+
+        in.predecessors().ifPresent(preds -> preds.forEach(pred -> {
+            TaskDto predDto = (TaskDto) ctx.get(pred);
+            if (predDto == null) predDto = toDto(pred, ctx);
+            out.addPredecessor(predDto);
+        }));
+
+        in.successors().ifPresent(succs -> succs.forEach(succ -> {
+            TaskDto succDto = (TaskDto) ctx.get(succ);
+            if (succDto == null) succDto = toDto(succ, ctx);
+            out.addSuccessor(succDto);
+        }));
 
         out.plannedStart(in.plannedStart().orElse(null));
         out.plannedEnd  (in.plannedEnd()  .orElse(null));

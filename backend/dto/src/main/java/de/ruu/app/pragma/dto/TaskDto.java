@@ -1,5 +1,7 @@
 package de.ruu.app.pragma.dto;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import de.ruu.app.pragma.core.Task;
 import de.ruu.app.pragma.core.TaskEntity;
 import org.jspecify.annotations.Nullable;
@@ -9,9 +11,12 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "jsonId", scope = TaskDto.class)
 public class TaskDto implements Task<TaskGroupDto, TaskDto>
 {
+    private final  UUID            jsonId  = UUID.randomUUID();
     private @Nullable Long         id;
     private @Nullable Short        version;
     private           String       name;
