@@ -50,7 +50,7 @@ public class TaskJPA implements TaskEntity<TaskGroupJPA, TaskJPA>
     @Column
     private @Nullable LocalDate plannedEnd;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
     private           Boolean   closed = false;
 
     // EAGER: taskGroup is always loaded — Optional.empty() never occurs for a valid task
