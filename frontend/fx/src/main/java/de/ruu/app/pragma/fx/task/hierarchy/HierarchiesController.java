@@ -621,7 +621,15 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             else
                 root.getChildren().add(item);
         }
+        sortTreeItems(root);
         return root;
+    }
+
+    private void sortTreeItems(TreeItem<TaskBean> parent)
+    {
+        parent.getChildren().sort(java.util.Comparator.comparing(
+                item -> item.getValue() == null ? "" : item.getValue().name().toLowerCase()));
+        parent.getChildren().forEach(this::sortTreeItems);
     }
 
     private void setupTreeView(TreeView<TaskBean> tv)

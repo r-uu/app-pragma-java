@@ -44,6 +44,10 @@
       <groupId>r-uu</groupId>
       <artifactId>r-uu.lib.fx.comp</artifactId>
     </dependency>
+    <dependency>
+      <groupId>r-uu</groupId>
+      <artifactId>r-uu.lib.fx.core</artifactId>
+    </dependency>
 
     <!-- Weld SE CDI implementation — compile scope overrides BOM test default -->
     <dependency>

@@ -29,7 +29,8 @@
         <HBox alignment="CENTER_LEFT" spacing="5">
             <padding><Insets top="5" right="5" bottom="5" left="5"/></padding>
             <Label text="group"/>
-            <ComboBox fx:id="cbGroups" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            <ComboBox fx:id="cbGroups" minWidth="200"/>
+            <Region HBox.hgrow="ALWAYS"/>
         </HBox>
 
         <!-- Main: 3 hierarchy panels in a ScrollPane -->

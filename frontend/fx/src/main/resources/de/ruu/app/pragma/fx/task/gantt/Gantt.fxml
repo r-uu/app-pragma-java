@@ -15,31 +15,42 @@
     <VBox AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
           AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
 
-        <!-- Top bar: group + date range -->
-        <HBox alignment="CENTER_LEFT" spacing="8">
-            <padding><Insets top="5" right="5" bottom="5" left="5"/></padding>
-            <Label text="group"/>
-            <ComboBox fx:id="cbGroups" minWidth="180"/>
+        <!-- Top bar: group selector + date-range filter (titled borders applied in controller) -->
+        <HBox fx:id="hBxTopBar" alignment="CENTER_LEFT" spacing="5">
+            <padding><Insets top="7" right="5" bottom="5" left="5"/></padding>
+
+            <!-- Group selector — gets "group" titled border in controller -->
+            <VBox fx:id="vBxForGroup" prefWidth="200" HBox.hgrow="NEVER">
+                <HBox.margin><Insets right="10"/></HBox.margin>
+                <ComboBox fx:id="cbGroups" maxWidth="Infinity"/>
+            </VBox>
+
+            <!-- Date-range filter — gets "filter" titled border in controller -->
+            <HBox fx:id="hBxForFilter" alignment="CENTER_LEFT" spacing="5" HBox.hgrow="NEVER">
+                <padding><Insets top="3" right="5" bottom="3" left="5"/></padding>
+                <Label text="start"/>
+                <DatePicker fx:id="dtPckrStart" prefWidth="130"/>
+                <Label text="end"/>
+                <DatePicker fx:id="dtPckrEnd" prefWidth="130"/>
+                <Button fx:id="btnApply" text="apply" style="-fx-font-size: 11px;" prefHeight="26"/>
+            </HBox>
+
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="from"/>
-            <DatePicker fx:id="dtPckrStart" prefWidth="140"/>
-            <Label text="to"/>
-            <DatePicker fx:id="dtPckrEnd" prefWidth="140"/>
-            <Button fx:id="btnApply" text="apply" style="-fx-font-size: 11px;" prefHeight="26"/>
         </HBox>
 
         <!-- Gantt TreeTableView -->
         <TreeTableView fx:id="ttv" VBox.vgrow="ALWAYS"
                        maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-                       showRoot="false" style="-fx-table-cell-border-color: transparent;"/>
+                       showRoot="false" fixedCellSize="28"
+                       style="-fx-table-cell-border-color: transparent; -fx-font-weight: normal;"/>
 
         <!-- Detail / date editing area for selected task -->
         <HBox alignment="CENTER_LEFT" spacing="8">
             <padding><Insets top="4" right="5" bottom="5" left="5"/></padding>
             <Label text="planned start"/>
-            <DatePicker fx:id="dtPckrTaskStart" prefWidth="140"/>
+            <DatePicker fx:id="dtPckrTaskStart" prefWidth="130"/>
             <Label text="planned end"/>
-            <DatePicker fx:id="dtPckrTaskEnd" prefWidth="140"/>
+            <DatePicker fx:id="dtPckrTaskEnd" prefWidth="130"/>
             <Button fx:id="btnSaveDates" text="save"
                     style="-fx-font-size: 11px;" prefHeight="26"/>
         </HBox>

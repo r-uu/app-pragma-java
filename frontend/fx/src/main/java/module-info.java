@@ -6,6 +6,7 @@ module de.ruu.app.pragma.fx
     requires de.ruu.app.pragma.client;
 
     requires de.ruu.lib.fx.comp;
+    requires de.ruu.lib.fx.core;
     requires de.ruu.lib.cdi.se;
     requires de.ruu.lib.cdi.common;
     requires de.ruu.lib.util;

@@ -67,9 +67,9 @@ public class TaskJPA implements TaskEntity<TaskGroupJPA, TaskJPA>
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-        name = "task_predecessor",
-        joinColumns = @JoinColumn(name = "task_id"),
-        inverseJoinColumns = @JoinColumn(name = "predecessor_id")
+        name = "task_predecessors_successors",
+        joinColumns        = @JoinColumn(name = "idPredecessor"),
+        inverseJoinColumns = @JoinColumn(name = "idSuccessor"  )
     )
     private @Nullable Set<TaskJPA> predecessors;
 
