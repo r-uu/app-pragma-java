@@ -29,41 +29,8 @@ public class DBPopulate
     public static void run(TaskGroupClient groupClient, TaskClient taskClient)
     {
         System.out.println("populating database ...");
-
-        // ── Gruppe 1: Analyse ────────────────────────────────────────────────
-        TaskGroupBean analyse = groupClient.create(new TaskGroupBean("Analyse"));
-        TaskBean a1 = taskClient.create(new TaskBean(analyse, "Anforderungen erfassen"));
-        TaskBean a2 = taskClient.create(new TaskBean(analyse, "Technologie-Stack festlegen"));
-        TaskBean a3 = taskClient.create(new TaskBean(analyse, "Architektur definieren"));
-
-        taskClient.addPredecessor(a2.id(), a1.id()); // A2 nach A1
-        taskClient.addPredecessor(a3.id(), a2.id()); // A3 nach A2
-
-        // ── Gruppe 2: Entwicklung ────────────────────────────────────────────
-        TaskGroupBean entwicklung = groupClient.create(new TaskGroupBean("Entwicklung"));
-
-        TaskBean d1  = taskClient.create(new TaskBean(entwicklung, "Backend implementieren"));
-        TaskBean d1a = taskClient.create(new TaskBean(entwicklung, "REST-Endpoints"));
-        TaskBean d1b = taskClient.create(new TaskBean(entwicklung, "JPA-Entities"));
-        TaskBean d2  = taskClient.create(new TaskBean(entwicklung, "Frontend implementieren"));
-
-        taskClient.addPredecessor(d1.id() , a3.id());   // D1 nach A3
-        taskClient.setParentTask (d1a.id(), d1.id());   // d1a ist Teilaufgabe von d1
-        taskClient.setParentTask (d1b.id(), d1.id());   // d1b ist Teilaufgabe von d1
-        taskClient.addPredecessor(d2.id() , d1.id());   // D2 nach D1
-
-        // ── Gruppe 3: Test ───────────────────────────────────────────────────
-        TaskGroupBean test = groupClient.create(new TaskGroupBean("Test"));
-        TaskBean t1 = taskClient.create(new TaskBean(test, "Integrationstests"));
-        TaskBean t2 = taskClient.create(new TaskBean(test, "Abnahmetests"));
-
-        taskClient.addPredecessor(t1.id(), d1.id());  // T1 nach D1
-        taskClient.addPredecessor(t2.id(), t1.id());  // T2 nach T1
-        taskClient.addPredecessor(t2.id(), d2.id());  // T2 auch nach D2
-
-        System.out.println("done — 3 groups, 10 tasks");
-
         populateDatabase(groupClient, taskClient);
+        System.out.println("done");
     }
 
     private static void populateDatabase(TaskGroupClient groupClient, TaskClient taskClient)
