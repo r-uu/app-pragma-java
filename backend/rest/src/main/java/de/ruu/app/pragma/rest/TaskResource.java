@@ -4,6 +4,7 @@ import de.ruu.app.pragma.dto.TaskDto;
 import de.ruu.app.pragma.jpa.TaskGroupJPA;
 import de.ruu.app.pragma.jpa.TaskJPA;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.persistence.EntityGraph;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Path("/tasks")
 @RequestScoped
@@ -59,6 +61,31 @@ public class TaskResource
     public TaskDto findById(@PathParam("id") Long id)
     {
         return Mappings.toDto(requireTask(id));
+    }
+
+    @GET
+    @Path("/{id}/with-related")
+    public TaskDto findByIdWithRelated(@PathParam("id") Long id)
+    {
+        EntityGraph<TaskJPA> graph = em.createEntityGraph(TaskJPA.class);
+        graph.addAttributeNodes("subTasks", "predecessors", "successors");
+        TaskJPA entity = em.find(TaskJPA.class, id, Map.of("jakarta.persistence.fetchgraph", graph));
+        if (entity == null) throw new NotFoundException("Task not found: " + id);
+        return Mappings.toDto(entity);
+    }
+
+    @GET
+    @Path("/group/{groupId}/with-related")
+    public List<TaskDto> findGroupTasksWithRelated(@PathParam("groupId") Long groupId)
+    {
+        EntityGraph<TaskJPA> graph = em.createEntityGraph(TaskJPA.class);
+        graph.addAttributeNodes("subTasks", "predecessors", "successors");
+        List<TaskJPA> tasks = em.createQuery(
+                "SELECT DISTINCT t FROM TaskJPA t WHERE t.taskGroup.id = :gid", TaskJPA.class)
+            .setParameter("gid", groupId)
+            .setHint("jakarta.persistence.fetchgraph", graph)
+            .getResultList();
+        return Mappings.toDto(tasks);
     }
 
     @POST

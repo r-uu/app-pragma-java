@@ -272,6 +272,8 @@ Basis-URL: `http://localhost:9090/pragma/api`
 | DELETE   | `/task-groups`                     | Alle Gruppen + Tasks löschen (inkl. Join-Tabellen) |
 | GET      | `/tasks?groupId=`                  | Tasks (optional gefiltert nach Gruppe)             |
 | GET      | `/tasks/{id}`                      | Task nach ID                                       |
+| GET      | `/tasks/{id}/with-related`         | Task mit subTasks, predecessors, successors (eager)|
+| GET      | `/tasks/group/{groupId}/with-related` | Alle Tasks einer Gruppe mit Relationen (eager)  |
 | POST     | `/tasks`                           | Neuer Task                                         |
 | PUT      | `/tasks/{id}`                      | Task umbenennen                                    |
 | PUT      | `/tasks/{id}/group/{groupId}`      | Task in andere Gruppe verschieben                  |
@@ -337,15 +339,18 @@ Voraussetzung: `TaskDto`/`TaskJPA` haben `plannedStart`/`plannedEnd` (LocalDate,
 REST-PUT `/tasks/{id}` persistiert diese Felder. `hbm2ddl.auto=update` fügt Spalten automatisch hinzu.
 
 #### Graph View (`de.ruu.app.pragma.fx.task.graph`)
-| Klasse              | Rolle                                                                       |
-|---------------------|-----------------------------------------------------------------------------|
-| `GraphService`      | FXCService-Interface                                                        |
-| `Graph`             | FXCView — lädt `Graph.fxml`                                                 |
-| `GraphController`   | JavaFXSmartGraph `DigraphEdgeList` + `SmartGraphPanel`; Predecessor → Edges |
-| `GraphApp`          | FXCApp standalone                                                           |
-| `GraphAppRunner`    | `main()` entry point                                                        |
+| Klasse              | Rolle                                                                              |
+|---------------------|------------------------------------------------------------------------------------|
+| `GraphService`      | FXCService-Interface                                                               |
+| `Graph`             | FXCView — lädt `Graph.fxml`                                                        |
+| `GraphController`   | Reines JavaFX-Graph: TaskBean-Knoten als abgerundete Rechtecke (Rectangle + VBox), |
+|                     | Kanten als Line+Polygon, einmaliges topologisches Auto-Layout, dann nur Dragging.  |
+|                     | Ein REST-Call (`findGroupTasksWithRelated`) lädt alle Tasks mit Relationen.         |
+| `GraphApp`          | FXCApp standalone                                                                  |
+| `GraphAppRunner`    | `main()` entry point                                                               |
 
-SmartGraph 2.0.0 als Dependency; CSS-Datei `smartgraph.css` in resources root.
+Kein SmartGraph für das visuelle Rendering (SmartGraph 2.0.0 unterstützt keine Rechtecke).
+SmartGraph-Dependency bleibt im Classpath, wird aber nicht mehr aktiv genutzt.
 
 #### Haupt-App (`de.ruu.app.pragma.fx`)
 | Klasse              | Rolle                                |

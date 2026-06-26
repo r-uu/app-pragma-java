@@ -87,6 +87,29 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
+    public Optional<TaskBean> findByIdWithRelated(long id)
+    {
+        try (Response response = target("/tasks/" + id + "/with-related")
+                .request(MediaType.APPLICATION_JSON).get())
+        {
+            if (response.getStatus() == Response.Status.NOT_FOUND.getStatusCode()) return Optional.empty();
+            requireSuccess(response);
+            return Optional.of(Mappings.toBean(response.readEntity(TaskDto.class)));
+        }
+        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
+    }
+
+    public List<TaskBean> findGroupTasksWithRelated(long groupId)
+    {
+        try (Response response = target("/tasks/group/" + groupId + "/with-related")
+                .request(MediaType.APPLICATION_JSON).get())
+        {
+            requireSuccess(response);
+            return Mappings.toBean(response.readEntity(new GenericType<List<TaskDto>>() {}));
+        }
+        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
+    }
+
     /**
      * Creates a task. The bean's {@code taskGroup()} must be non-null and persisted (id ≠ null)
      * since tasks must always belong to a group.
