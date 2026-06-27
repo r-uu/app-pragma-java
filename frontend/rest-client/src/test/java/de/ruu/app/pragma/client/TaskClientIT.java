@@ -34,7 +34,7 @@ class TaskClientIT
     void tearDown()
     {
         if (testGroup != null && testGroup.id() != null)
-            groupClient.delete(testGroup.id());
+            groupClient.delete(testGroup);
         taskClient.preDestroy();
         groupClient.preDestroy();
     }
@@ -42,7 +42,7 @@ class TaskClientIT
     @Test
     void testFindAllByGroup()
     {
-        List<TaskBean> tasks = taskClient.findAll(testGroup.id());
+        List<TaskBean> tasks = taskClient.findAll(testGroup);
         assertThat(tasks).isNotNull();
     }
 
@@ -56,7 +56,7 @@ class TaskClientIT
         assertThat(created.id()).isNotNull();
         assertThat(created.name()).isEqualTo(name);
 
-        taskClient.delete(created.id());
+        taskClient.delete(created);
 
         Optional<TaskBean> found = taskClient.findById(created.id());
         assertThat(found).isEmpty();
@@ -69,11 +69,11 @@ class TaskClientIT
         assertThat(created.id()).isNotNull();
 
         created.name("it-update-new-" + System.currentTimeMillis());
-        TaskBean updated = taskClient.update(created.id(), created);
+        TaskBean updated = taskClient.update(created);
 
         assertThat(updated.name()).isEqualTo(created.name());
 
-        taskClient.delete(created.id());
+        taskClient.delete(created);
     }
 
     @Test
@@ -86,6 +86,6 @@ class TaskClientIT
         assertThat(found).isPresent();
         assertThat(found.get().name()).isEqualTo(created.name());
 
-        taskClient.delete(created.id());
+        taskClient.delete(created);
     }
 }

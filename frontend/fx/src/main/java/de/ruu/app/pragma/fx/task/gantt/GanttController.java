@@ -113,7 +113,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
     {
         try
         {
-            currentTasks = taskClient.findAll(group.id());
+            currentTasks = taskClient.findAll(group);
             Platform.runLater(this::reloadTable);
         }
         catch (Exception e) { log.error("failed to load group {}", group.name(), e); }
@@ -247,7 +247,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
         try
         {
-            TaskBean updated = taskClient.update(task.id(), task);
+            TaskBean updated = taskClient.update(task);
             currentTasks = new ArrayList<>(currentTasks);
             currentTasks.replaceAll(t -> t.id() != null && t.id().equals(updated.id()) ? updated : t);
             sel.setValue(updated);

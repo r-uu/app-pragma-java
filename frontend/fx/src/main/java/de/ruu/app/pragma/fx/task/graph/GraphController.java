@@ -9,8 +9,10 @@ import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
-import javafx.geometry.Point2D;
 import javafx.scene.Group;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -21,9 +23,15 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 
@@ -41,18 +50,30 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
 
     private static final double NODE_WIDTH  = 160;
     private static final double NODE_HEIGHT =  60;
-    private static final double H_GAP       = 40;
-    private static final double V_GAP       = 30;
-    private static final double ARC         = 12;
+    private static final double H_GAP      =  40;
+    private static final double V_GAP      =  30;
+    private static final double PAD        =  20;   // canvas padding
+    private static final double ARC        =  12;
+    private static final double ARROW_LEN  =  10;
+    private static final double ARROW_ANG  =   0.4; // radians half-angle of arrowhead
+    private static final double GRID       =  20;   // snap-to-grid resolution in pixels
+    private static final double STEP       = NODE_HEIGHT + V_GAP;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @FXML private ComboBox<TaskGroupBean> cbGroups;
     @FXML private Label                   lblStatus;
     @FXML private AnchorPane              graphContainer;
+    @FXML private Button                  btnSaveLayout;
+    @FXML private Button                  btnLoadLayout;
 
     @Inject private TaskGroupClient taskGroupClient;
     @Inject private TaskClient      taskClient;
+
+    /** Task-ID → node; populated after each group load, used for save/load layout. */
+    private Map<Long, Group> currentNodeById = new HashMap<>();
+
+    private File lastLayoutFile;
 
     @Override
     @FXML
@@ -62,6 +83,8 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         cbGroups.setButtonCell(groupCell());
         cbGroups.getSelectionModel().selectedItemProperty()
                 .addListener((obs, old, sel) -> { if (sel != null) loadGroup(sel); });
+        btnSaveLayout.setDisable(true);
+        btnLoadLayout.setDisable(true);
         loadGroups();
     }
 
@@ -80,10 +103,9 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
     {
         try
         {
-            List<TaskBean> tasks = taskClient.findGroupTasksWithRelated(group.id());
+            List<TaskBean> tasks = taskClient.findGroupTasksWithRelated(group);
             buildGraph(tasks);
-            if (lblStatus != null)
-                lblStatus.setText(tasks.size() + " tasks");
+            if (lblStatus != null) lblStatus.setText(tasks.size() + " tasks");
         }
         catch (Exception e) { log.error("failed to load group {}", group.name(), e); }
     }
@@ -93,17 +115,13 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         Pane canvas = new Pane();
         canvas.setStyle("-fx-background-color: #1e1e2e;");
 
-        Map<Long, TaskBean>  byId       = new HashMap<>();
-        Map<Long, Group>     nodeById   = new HashMap<>();
-        List<EdgeSpec>       edgeSpecs  = new ArrayList<>();
+        Map<Long, TaskBean> byId     = new HashMap<>();
+        Map<Long, Group>    nodeById = new HashMap<>();
+        List<EdgeSpec>      edges    = new ArrayList<>();
 
         for (TaskBean task : tasks)
-        {
-            if (task.id() == null) continue;
-            byId.put(task.id(), task);
-        }
+            if (task.id() != null) byId.put(task.id(), task);
 
-        // vertex nodes
         for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
@@ -112,7 +130,6 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
             canvas.getChildren().add(node);
         }
 
-        // collect edges
         for (TaskBean task : tasks)
         {
             if (task.id() == null) continue;
@@ -125,54 +142,55 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
                     Group to   = nodeById.get(task.id());
                     if (from == null)
                     {
-                        // predecessor not in group — add it as a ghost node
-                        Group ghost = createNode(pred);
-                        nodeById.put(pred.id(), ghost);
-                        canvas.getChildren().add(ghost);
-                        from = ghost;
+                        // predecessor is from another group — show as ghost node
+                        from = createNode(pred);
+                        nodeById.put(pred.id(), from);
+                        canvas.getChildren().add(from);
                     }
-                    edgeSpecs.add(new EdgeSpec(from, to));
+                    if (to != null) edges.add(new EdgeSpec(from, to));
                 }
             });
         }
 
-        // initial layout (topological layers)
         applyLayout(nodeById, byId);
 
-        // draw edges BEHIND nodes
-        for (EdgeSpec spec : edgeSpecs)
-        {
-            List<javafx.scene.Node> arrow = createArrow(spec.from(), spec.to());
-            canvas.getChildren().addAll(0, arrow);
-        }
+        // add edges behind nodes
+        for (EdgeSpec spec : edges)
+            canvas.getChildren().addAll(0, createArrow(spec.from(), spec.to()));
 
         AnchorPane.setTopAnchor   (canvas, 0.0);
         AnchorPane.setBottomAnchor(canvas, 0.0);
         AnchorPane.setLeftAnchor  (canvas, 0.0);
         AnchorPane.setRightAnchor (canvas, 0.0);
         graphContainer.getChildren().setAll(canvas);
+
+        currentNodeById = new HashMap<>(nodeById);
+        btnSaveLayout.setDisable(currentNodeById.isEmpty());
+        btnLoadLayout.setDisable(currentNodeById.isEmpty());
     }
+
+    // ── Node creation ─────────────────────────────────────────────────────────
 
     private Group createNode(TaskBean task)
     {
         Rectangle rect = new Rectangle(NODE_WIDTH, NODE_HEIGHT);
         rect.setArcWidth (ARC);
         rect.setArcHeight(ARC);
-        rect.setFill  (Color.web("#3c5a8a"));
-        rect.setStroke(Color.web("#6699cc"));
+        rect.setFill     (Color.web("#3c5a8a"));
+        rect.setStroke   (Color.web("#6699cc"));
         rect.setStrokeWidth(1.5);
 
-        Label lName  = new Label(task.name());
+        Label lName = new Label(task.name());
         lName.setTextFill(Color.WHITE);
         lName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px;");
         lName.setMaxWidth(NODE_WIDTH - 10);
 
-        String startText = task.plannedStart()
-            .map(d -> "von: " + d.format(DATE_FMT)).orElse("");
-        String endText   = task.plannedEnd()
-            .map(d -> "bis: " + d.format(DATE_FMT)).orElse("");
+        String startText = task.plannedStart().map(d -> "von: " + d.format(DATE_FMT)).orElse("");
+        String endText   = task.plannedEnd()  .map(d -> "bis: " + d.format(DATE_FMT)).orElse("");
+        String dateText  = startText.isEmpty() && endText.isEmpty() ? ""
+                         : startText + (startText.isEmpty() || endText.isEmpty() ? "" : "  ") + endText;
 
-        Label lDates = new Label(startText + (startText.isEmpty() || endText.isEmpty() ? "" : "  ") + endText);
+        Label lDates = new Label(dateText);
         lDates.setTextFill(Color.LIGHTGRAY);
         lDates.setStyle("-fx-font-size: 9px;");
         lDates.setMaxWidth(NODE_WIDTH - 10);
@@ -181,101 +199,208 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         box.setPadding(new Insets(6, 6, 6, 8));
         box.setMaxWidth(NODE_WIDTH);
 
-        Group group = new Group(rect, box);
-        enableDrag(group);
-        return group;
+        Group node = new Group(rect, box);
+        enableDrag(node);
+        return node;
     }
+
+    // ── Dragging with snap-to-grid ─────────────────────────────────────────────
 
     private void enableDrag(Group node)
     {
-        final double[] drag = {0, 0};
+        final double[] offset = {0, 0};
         node.setOnMousePressed(e ->
         {
-            drag[0] = e.getSceneX() - node.getTranslateX();
-            drag[1] = e.getSceneY() - node.getTranslateY();
+            offset[0] = e.getSceneX() - node.getTranslateX();
+            offset[1] = e.getSceneY() - node.getTranslateY();
             node.toFront();
+            e.consume();
         });
         node.setOnMouseDragged(e ->
         {
-            node.setTranslateX(e.getSceneX() - drag[0]);
-            node.setTranslateY(e.getSceneY() - drag[1]);
+            node.setTranslateX(e.getSceneX() - offset[0]);
+            node.setTranslateY(e.getSceneY() - offset[1]);
+            e.consume();
+        });
+        node.setOnMouseReleased(e ->
+        {
+            node.setTranslateX(snap(node.getTranslateX()));
+            node.setTranslateY(snap(node.getTranslateY()));
+            e.consume();
         });
     }
 
-    private List<javafx.scene.Node> createArrow(Group from, Group to)
-    {
-        // bind line endpoints to node centers (translateX/Y + half-size)
-        Line line = new Line();
-        line.setStroke(Color.web("#aaaaaa"));
-        line.setStrokeWidth(1.5);
+    private double snap(double value) { return Math.round(value / GRID) * GRID; }
 
-        line.startXProperty().bind(from.translateXProperty().add(NODE_WIDTH  / 2.0));
-        line.startYProperty().bind(from.translateYProperty().add(NODE_HEIGHT / 2.0));
-        line.endXProperty  ().bind(to.translateXProperty()  .add(NODE_WIDTH  / 2.0));
-        line.endYProperty  ().bind(to.translateYProperty()  .add(NODE_HEIGHT / 2.0));
-
-        Polygon arrowHead = new Polygon();
-        arrowHead.setFill(Color.web("#aaaaaa"));
-
-        // update arrowhead when line changes
-        Runnable updateHead = () -> updateArrowHead(arrowHead, line);
-        line.startXProperty().addListener((o, ov, nv) -> updateHead.run());
-        line.startYProperty().addListener((o, ov, nv) -> updateHead.run());
-        line.endXProperty  ().addListener((o, ov, nv) -> updateHead.run());
-        line.endYProperty  ().addListener((o, ov, nv) -> updateHead.run());
-
-        return List.of(line, arrowHead);
-    }
-
-    private void updateArrowHead(Polygon head, Line line)
-    {
-        double ex = line.getEndX();
-        double ey = line.getEndY();
-        double sx = line.getStartX();
-        double sy = line.getStartY();
-
-        double angle  = Math.atan2(ey - sy, ex - sx);
-        double tipLen = 10;
-        double tipWid = 5;
-
-        double tipX = ex - Math.cos(angle) * (NODE_HEIGHT / 2.0);
-        double tipY = ey - Math.sin(angle) * (NODE_HEIGHT / 2.0);
-
-        double lx = tipX - Math.cos(angle - 0.4) * tipLen;
-        double ly = tipY - Math.sin(angle - 0.4) * tipLen;
-        double rx = tipX - Math.cos(angle + 0.4) * tipLen;
-        double ry = tipY - Math.sin(angle + 0.4) * tipLen;
-
-        head.getPoints().setAll(tipX, tipY, lx, ly, rx, ry);
-    }
+    // ── Directed edge (predecessor → successor) ────────────────────────────────
 
     /**
-     * Assigns x/y positions via topological layering.
-     * Nodes with no predecessors go in column 0; each successor goes in max(predecessorLayer)+1.
+     * Creates a directed arrow from {@code from} to {@code to}.
+     * The start point is the right or left center of {@code from} depending on which side
+     * faces {@code to}; the end point is the corresponding opposite edge of {@code to}.
+     * The arrowhead is placed exactly at the end point.
+     */
+    private List<javafx.scene.Node> createArrow(Group from, Group to)
+    {
+        Line    line = new Line();
+        Polygon head = new Polygon();
+        line.setStroke(Color.web("#aaaaaa"));
+        line.setStrokeWidth(1.5);
+        head.setFill(Color.web("#aaaaaa"));
+
+        Runnable update = () -> updateArrow(line, head, from, to);
+
+        from.translateXProperty().addListener((o, ov, nv) -> update.run());
+        from.translateYProperty().addListener((o, ov, nv) -> update.run());
+        to.translateXProperty()  .addListener((o, ov, nv) -> update.run());
+        to.translateYProperty()  .addListener((o, ov, nv) -> update.run());
+
+        update.run();
+        return List.of(line, head);
+    }
+
+    private void updateArrow(Line line, Polygon head, Group from, Group to)
+    {
+        double fCx = from.getTranslateX() + NODE_WIDTH  / 2.0;
+        double tCx = to  .getTranslateX() + NODE_WIDTH  / 2.0;
+        double fCy = from.getTranslateY() + NODE_HEIGHT / 2.0;
+        double tCy = to  .getTranslateY() + NODE_HEIGHT / 2.0;
+
+        double startX, startY, endX, endY;
+
+        // connect from the horizontal side that faces the target
+        if (fCx <= tCx)
+        {
+            // from is left of (or equal to) to → exit right edge, enter left edge
+            startX = from.getTranslateX() + NODE_WIDTH;
+            startY = fCy;
+            endX   = to.getTranslateX();
+            endY   = tCy;
+        }
+        else
+        {
+            // from is right of to → exit left edge, enter right edge
+            startX = from.getTranslateX();
+            startY = fCy;
+            endX   = to.getTranslateX() + NODE_WIDTH;
+            endY   = tCy;
+        }
+
+        line.setStartX(startX);
+        line.setStartY(startY);
+        line.setEndX  (endX);
+        line.setEndY  (endY);
+
+        // arrowhead tip sits exactly at (endX, endY)
+        double angle = Math.atan2(endY - startY, endX - startX);
+        double lx = endX - Math.cos(angle - ARROW_ANG) * ARROW_LEN;
+        double ly = endY - Math.sin(angle - ARROW_ANG) * ARROW_LEN;
+        double rx = endX - Math.cos(angle + ARROW_ANG) * ARROW_LEN;
+        double ry = endY - Math.sin(angle + ARROW_ANG) * ARROW_LEN;
+        head.getPoints().setAll(endX, endY, lx, ly, rx, ry);
+    }
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+
+    /**
+     * Left-to-right layered layout (column = topological depth).
+     * Within each column nodes are sorted by the average y-position of their
+     * already-placed predecessors, then spread apart to remove overlaps while
+     * staying as close as possible to those target positions.
+     * This keeps predecessor–successor pairs at approximately the same height.
      */
     private void applyLayout(Map<Long, Group> nodeById, Map<Long, TaskBean> byId)
     {
-        Map<Long, Integer> layer  = computeLayers(byId);
+        Map<Long, Integer>       layer   = computeLayers(byId);
         Map<Integer, List<Long>> columns = new HashMap<>();
         layer.forEach((id, col) -> columns.computeIfAbsent(col, k -> new ArrayList<>()).add(id));
 
-        int maxCol = columns.keySet().stream().mapToInt(i -> i).max().orElse(0);
+        // ghost nodes (predecessors from other groups) are not in byId → extra column at the right
+        Set<Long> ghostIds = new HashSet<>(nodeById.keySet());
+        ghostIds.removeAll(byId.keySet());
+
+        int maxCol    = columns.keySet().stream().mapToInt(i -> i).max().orElse(0);
+        int colOffset = ghostIds.isEmpty() ? 0 : 1;  // shift all columns right when ghosts exist
+
+        if (!ghostIds.isEmpty())
+        {
+            double ghostX = snap(PAD);
+            int row = 0;
+            for (Long gid : ghostIds)
+            {
+                Group node = nodeById.get(gid);
+                if (node != null) { node.setTranslateX(ghostX); node.setTranslateY(snap(PAD + row++ * STEP)); }
+            }
+        }
+
+        Map<Long, Double> yPos = new HashMap<>();
+
         for (int col = 0; col <= maxCol; col++)
         {
-            List<Long> ids = columns.getOrDefault(col, List.of());
-            for (int row = 0; row < ids.size(); row++)
+            List<Long> ids = new ArrayList<>(columns.getOrDefault(col, List.of()));
+            if (ids.isEmpty()) continue;
+
+            // sort by average y of predecessors already placed in earlier columns
+            ids.sort((a, b) -> Double.compare(avgPredY(a, byId, yPos), avgPredY(b, byId, yPos)));
+
+            // ideal y = average predecessor y (PAD when no predecessor placed yet)
+            List<Double> targets = ids.stream().map(id -> avgPredY(id, byId, yPos)).toList();
+            List<Double> placed  = resolveOverlaps(targets);
+
+            for (int i = 0; i < ids.size(); i++) yPos.put(ids.get(i), placed.get(i));
+
+            double x = snap(PAD + (col + colOffset) * (NODE_WIDTH + H_GAP));
+            for (Long id : ids)
             {
-                Group node = nodeById.get(ids.get(row));
-                if (node == null) continue;
-                node.setTranslateX(20 + col * (NODE_WIDTH  + H_GAP));
-                node.setTranslateY(20 + row * (NODE_HEIGHT + V_GAP));
+                Group node = nodeById.get(id);
+                if (node != null) { node.setTranslateX(x); node.setTranslateY(snap(yPos.get(id))); }
             }
         }
     }
 
+    /**
+     * Returns the average y-position of already-placed predecessors within the same group.
+     * Falls back to {@link #PAD} when no predecessor has been placed yet (column-0 case).
+     */
+    private double avgPredY(Long id, Map<Long, TaskBean> byId, Map<Long, Double> yPos)
+    {
+        TaskBean task = byId.get(id);
+        if (task == null) return PAD;
+        List<Double> ys = new ArrayList<>();
+        task.predecessors().ifPresent(preds ->
+            preds.stream()
+                 .filter(p -> p.id() != null && yPos.containsKey(p.id()))
+                 .forEach(p -> ys.add(yPos.get(p.id())))
+        );
+        return ys.isEmpty() ? PAD : ys.stream().mapToDouble(d -> d).average().orElse(PAD);
+    }
+
+    /**
+     * Spreads a sorted list of target y-positions so that consecutive entries are
+     * at least {@link #STEP} apart.  Forward pass pushes nodes down; backward pass
+     * pulls them back up as close as possible to their original targets.
+     * Result is clamped to ≥ {@link #PAD}.
+     */
+    private List<Double> resolveOverlaps(List<Double> targets)
+    {
+        List<Double> r = new ArrayList<>(targets);
+
+        for (int i = 1; i < r.size(); i++)                          // push down
+            if (r.get(i) < r.get(i - 1) + STEP) r.set(i, r.get(i - 1) + STEP);
+
+        for (int i = r.size() - 2; i >= 0; i--)                    // pull up
+            r.set(i, Math.min(r.get(i), r.get(i + 1) - STEP));
+
+        double minY = r.stream().mapToDouble(d -> d).min().orElse(PAD);
+        if (minY < PAD) { double shift = PAD - minY; r.replaceAll(v -> v + shift); }
+
+        return r;
+    }
+
+    /** Topological layer assignment via Kahn's algorithm; ignores ghost predecessors. */
     private Map<Long, Integer> computeLayers(Map<Long, TaskBean> byId)
     {
-        Map<Long, Integer> inDegree = new HashMap<>();
+        Map<Long, Integer>    inDegree   = new HashMap<>();
         Map<Long, List<Long>> successors = new HashMap<>();
 
         for (TaskBean t : byId.values())
@@ -285,7 +410,8 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
             {
                 for (TaskBean pred : preds)
                 {
-                    if (pred.id() == null) continue;
+                    if (pred.id() == null)            continue;
+                    if (!byId.containsKey(pred.id())) continue; // ghost → skip
                     inDegree.merge(t.id(), 1, Integer::sum);
                     successors.computeIfAbsent(pred.id(), k -> new ArrayList<>()).add(t.id());
                 }
@@ -293,31 +419,120 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         }
 
         Map<Long, Integer> layer = new HashMap<>();
-        Queue<Long> queue = new LinkedList<>();
+        Queue<Long>        queue = new LinkedList<>();
         for (Map.Entry<Long, Integer> e : inDegree.entrySet())
             if (e.getValue() == 0) { queue.add(e.getKey()); layer.put(e.getKey(), 0); }
 
         Set<Long> visited = new HashSet<>();
         while (!queue.isEmpty())
         {
-            Long current = queue.poll();
+            Long current      = queue.poll();
             if (!visited.add(current)) continue;
-            int currentLayer = layer.getOrDefault(current, 0);
+            int  currentLayer = layer.getOrDefault(current, 0);
             for (Long succId : successors.getOrDefault(current, List.of()))
             {
                 int newLayer = currentLayer + 1;
-                if (newLayer > layer.getOrDefault(succId, 0))
-                    layer.put(succId, newLayer);
+                if (newLayer > layer.getOrDefault(succId, 0)) layer.put(succId, newLayer);
                 queue.add(succId);
             }
         }
 
-        // any node not yet assigned gets layer 0
         byId.keySet().forEach(id -> layer.putIfAbsent(id, 0));
         return layer;
     }
 
     private record EdgeSpec(Group from, Group to) {}
+
+    // ── Layout persistence ────────────────────────────────────────────────────
+
+    @FXML
+    private void saveLayout()
+    {
+        FileChooser chooser = layoutFileChooser("Layout speichern");
+        File file = chooser.showSaveDialog(graphContainer.getScene().getWindow());
+        if (file == null) return;
+
+        lastLayoutFile = file;
+        Properties props = new Properties();
+        currentNodeById.forEach((id, node) ->
+            props.setProperty(id.toString(),
+                    node.getTranslateX() + "," + node.getTranslateY()));
+
+        try (FileWriter w = new FileWriter(file))
+        {
+            props.store(w, "pragma graph layout");
+        }
+        catch (IOException e)
+        {
+            log.error("failed to save layout to {}", file, e);
+            showError("Layout speichern", e);
+        }
+    }
+
+    @FXML
+    private void loadLayout()
+    {
+        FileChooser chooser = layoutFileChooser("Layout laden");
+        if (lastLayoutFile != null) chooser.setInitialDirectory(lastLayoutFile.getParentFile());
+        File file = chooser.showOpenDialog(graphContainer.getScene().getWindow());
+        if (file == null) return;
+
+        lastLayoutFile = file;
+        Properties props = new Properties();
+        try (FileReader r = new FileReader(file))
+        {
+            props.load(r);
+        }
+        catch (IOException e)
+        {
+            log.error("failed to load layout from {}", file, e);
+            showError("Layout laden", e);
+            return;
+        }
+
+        int applied = 0;
+        for (String key : props.stringPropertyNames())
+        {
+            try
+            {
+                Long  id    = Long.parseLong(key.trim());
+                Group node  = currentNodeById.get(id);
+                if (node == null) continue;
+                String[] xy = props.getProperty(key).split(",", 2);
+                node.setTranslateX(snap(Double.parseDouble(xy[0].trim())));
+                node.setTranslateY(snap(Double.parseDouble(xy[1].trim())));
+                applied++;
+            }
+            catch (NumberFormatException | ArrayIndexOutOfBoundsException ex)
+            {
+                log.warn("skipping invalid layout entry: {}={}", key, props.getProperty(key));
+            }
+        }
+        if (lblStatus != null) lblStatus.setText(currentNodeById.size() + " tasks  (layout: " + applied + " nodes)");
+    }
+
+    private FileChooser layoutFileChooser(String title)
+    {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle(title);
+        chooser.getExtensionFilters().addAll(
+                new ExtensionFilter("Pragma Graph Layout (*.pgraph)", "*.pgraph"),
+                new ExtensionFilter("Alle Dateien", "*.*"));
+        if (lastLayoutFile != null)
+        {
+            chooser.setInitialDirectory(lastLayoutFile.getParentFile());
+            chooser.setInitialFileName(lastLayoutFile.getName());
+        }
+        return chooser;
+    }
+
+    private void showError(String title, Exception e)
+    {
+        Alert alert = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.showAndWait();
+    }
 
     private ListCell<TaskGroupBean> groupCell()
     {

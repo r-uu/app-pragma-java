@@ -60,29 +60,30 @@ public class DBPopulate
         TaskBean f33 = taskClient.create(new TaskBean(project, "feature 3.3 - implement").plannedStart(LocalDate.of(2025, 2,  1)).plannedEnd(LocalDate.of(2025, 2,  7)));
         TaskBean f34 = taskClient.create(new TaskBean(project, "feature 3.4 - test"     ).plannedStart(LocalDate.of(2025, 2,  8)).plannedEnd(LocalDate.of(2025, 2, 15)));
 
-        taskClient.setParentTask(f11.id(), featureSet1.id());
-        taskClient.setParentTask(f12.id(), featureSet1.id());
-        taskClient.setParentTask(f13.id(), featureSet1.id());
-        taskClient.setParentTask(f14.id(), featureSet1.id());
-        taskClient.setParentTask(f21.id(), featureSet2.id());
-        taskClient.setParentTask(f22.id(), featureSet2.id());
-        taskClient.setParentTask(f23.id(), featureSet2.id());
-        taskClient.setParentTask(f24.id(), featureSet2.id());
-        taskClient.setParentTask(f31.id(), featureSet3.id());
-        taskClient.setParentTask(f32.id(), featureSet3.id());
-        taskClient.setParentTask(f33.id(), featureSet3.id());
-        taskClient.setParentTask(f34.id(), featureSet3.id());
+        taskClient.setParentTask(f11, featureSet1);
+        taskClient.setParentTask(f12, featureSet1);
+        taskClient.setParentTask(f13, featureSet1);
+        taskClient.setParentTask(f14, featureSet1);
+        taskClient.setParentTask(f21, featureSet2);
+        taskClient.setParentTask(f22, featureSet2);
+        taskClient.setParentTask(f23, featureSet2);
+        taskClient.setParentTask(f24, featureSet2);
+        taskClient.setParentTask(f31, featureSet3);
+        taskClient.setParentTask(f32, featureSet3);
+        taskClient.setParentTask(f33, featureSet3);
+        taskClient.setParentTask(f34, featureSet3);
 
-        taskClient.addPredecessor(f12.id(), f11.id());
-        taskClient.addPredecessor(f13.id(), f12.id());
-        taskClient.addPredecessor(f14.id(), f13.id());
-        taskClient.addPredecessor(f22.id(), f21.id());
-        taskClient.addPredecessor(f23.id(), f22.id());
-        taskClient.addPredecessor(f24.id(), f23.id());
-        taskClient.addPredecessor(f32.id(), f31.id());
-        taskClient.addPredecessor(f33.id(), f32.id());
-        taskClient.addPredecessor(f34.id(), f33.id());
-        taskClient.addPredecessor(featureSet2.id(), featureSet1.id());
-        taskClient.addPredecessor(featureSet3.id(), featureSet2.id());
+        taskClient.addPredecessor(f12, f11);
+        taskClient.addPredecessor(f13, f12);
+        taskClient.addPredecessor(f14, f13);
+        taskClient.addPredecessor(f22, f21);
+        taskClient.addPredecessor(f23, f22);
+        taskClient.addPredecessor(f24, f23);
+        taskClient.addPredecessor(f32, f31);
+        taskClient.addPredecessor(f33, f32);
+        taskClient.addPredecessor(f34, f33);
+        taskClient.addPredecessor(featureSet2, featureSet1);
+        taskClient.addPredecessor(featureSet3, featureSet2);
+        taskClient.addPredecessor(f21, f11); // predecessor outside parent/child hierarchy
     }
 }

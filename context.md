@@ -4,8 +4,7 @@
 
 Diese Datei dient als Kontext-Datei für AI-Agenten wie Claude Code oder Gemini. Sie soll bei jedem Chat mit AI-Agenten berücksichtigt und automatisch aktuell gehalten werden.
 
-Übergeordnete Kontext-Datei (immer zuerst lesen, wird durch diese Datei ggf. überschrieben):
-- `/home/r-uu/develop/github/lib-java/context.md`
+[Übergeordnete Kontext-Datei](../app-lib-java/context.md) immer zuerst lesen, wird durch diese Datei ggf. überschrieben.
 
 Diese Datei enthält einen [planerischen (Projektziele)](#projektziele) und einen [operativen Teil (Projektumsetzung)](#projektumsetzung).
 
@@ -106,11 +105,11 @@ Alle bidirektionalen Relationen werden durch explizite add/remove-Methoden verwa
 Die Methoden pflegen beide Seiten der Relation und sind gegen unendliche Rekursion gesichert
 (`Set.add()` gibt `false` zurück, wenn das Element bereits vorhanden ist).
 
-| Relation | Methoden | gegenseitige Pflege |
-|---|---|---|
-| parentTask / subTasks | `addSubTask(T)`, `removeSubTask(T)` | setzt parentTask auf der Kindseite |
+| Relation                  | Methoden                                    | gegenseitige Pflege                  |
+|---------------------------|---------------------------------------------|--------------------------------------|
+| parentTask / subTasks     | `addSubTask(T)`, `removeSubTask(T)`         | setzt parentTask auf der Kindseite   |
 | predecessors / successors | `addPredecessor(T)`, `removePredecessor(T)` | registriert Successor auf Gegenseite |
-| taskGroup / tasks | `addTask(T)`, `removeTask(T)` | setzt taskGroup auf der Task-Seite |
+| taskGroup / tasks         | `addTask(T)`, `removeTask(T)`               | setzt taskGroup auf der Task-Seite   |
 
 ## Interface-Hierarchie
 

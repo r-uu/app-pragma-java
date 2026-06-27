@@ -46,7 +46,7 @@ class TaskGroupClientIT
         assertThat(created.id()).isNotNull();
         assertThat(created.name()).isEqualTo(name);
 
-        client.delete(created.id());
+        client.delete(created);
 
         Optional<TaskGroupBean> found = client.findById(created.id());
         assertThat(found).isEmpty();
@@ -60,11 +60,12 @@ class TaskGroupClientIT
         assertThat(created.id()).isNotNull();
 
         String updatedName = "it-update-new-" + System.currentTimeMillis();
-        TaskGroupBean updated = client.update(created.id(), new TaskGroupBean(updatedName));
+        created.name(updatedName);
+        TaskGroupBean updated = client.update(created);
 
         assertThat(updated.name()).isEqualTo(updatedName);
 
-        client.delete(created.id());
+        client.delete(created);
     }
 
     @Test
@@ -78,6 +79,6 @@ class TaskGroupClientIT
         assertThat(found).isPresent();
         assertThat(found.get().name()).isEqualTo(created.name());
 
-        client.delete(created.id());
+        client.delete(created);
     }
 }

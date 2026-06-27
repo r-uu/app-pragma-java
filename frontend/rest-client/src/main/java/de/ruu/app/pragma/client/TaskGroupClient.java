@@ -92,9 +92,9 @@ public class TaskGroupClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskGroupBean update(long id, TaskGroupBean bean)
+    public TaskGroupBean update(TaskGroupBean bean)
     {
-        try (Response response = target("/task-groups/" + id)
+        try (Response response = target("/task-groups/" + id(bean))
                 .request(MediaType.APPLICATION_JSON)
                 .put(Entity.json(Mappings.toDto(bean))))
         {
@@ -104,9 +104,9 @@ public class TaskGroupClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public void delete(long id)
+    public void delete(TaskGroupBean bean)
     {
-        try (Response response = target("/task-groups/" + id).request().delete())
+        try (Response response = target("/task-groups/" + id(bean)).request().delete())
         {
             requireSuccess(response);
         }
@@ -120,6 +120,13 @@ public class TaskGroupClient
             requireSuccess(response);
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
+    }
+
+    private long id(TaskGroupBean bean)
+    {
+        Long id = bean.id();
+        if (id == null) throw new IllegalArgumentException("TaskGroupBean has no id — persist it first");
+        return id;
     }
 
     private jakarta.ws.rs.client.WebTarget target(String path)

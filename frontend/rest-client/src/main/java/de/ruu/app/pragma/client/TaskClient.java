@@ -10,6 +10,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.jakarta.rs.json.JacksonJsonProvider;
 import de.ruu.app.pragma.bean.Mappings;
 import de.ruu.app.pragma.bean.TaskBean;
+import de.ruu.app.pragma.bean.TaskGroupBean;
 import de.ruu.app.pragma.dto.TaskDto;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -32,8 +33,12 @@ import java.util.Optional;
 /**
  * REST client for task operations.
  *
- * <p>The public interface works exclusively with {@link TaskBean} / {@link de.ruu.app.pragma.bean.TaskGroupBean}.
+ * <p>The public interface works exclusively with {@link TaskBean} / {@link TaskGroupBean}.
  * DTO types are an internal transport detail — callers never need to import the {@code dto} module.
+ *
+ * <p>Methods that operate on persisted objects accept beans directly; the ID is extracted
+ * internally.  Only the pure lookup methods {@link #findById} and {@link #findByIdWithRelated}
+ * accept a raw {@code long id}, because those operations are inherently ID-driven.
  *
  * <p><strong>Tasks must always belong to a group.</strong> The {@code create(TaskBean)} method
  * enforces this: the bean's {@code taskGroup()} must be non-null and already persisted (id ≠ null).
@@ -63,18 +68,30 @@ public class TaskClient
         if (client != null) client.close();
     }
 
-    public List<TaskBean> findAll(@Nullable Long groupId)
+    // ── find all ──────────────────────────────────────────────────────────────
+
+    public List<TaskBean> findAll()
     {
-        var target = target("/tasks");
-        if (groupId != null) target = target.queryParam("groupId", groupId);
-        try (Response response = target.request(MediaType.APPLICATION_JSON).get())
+        try (Response response = target("/tasks").request(MediaType.APPLICATION_JSON).get())
         {
             requireSuccess(response);
-            List<TaskDto> dtos = response.readEntity(new GenericType<List<TaskDto>>() {});
-            return Mappings.toBean(dtos);
+            return Mappings.toBean(response.readEntity(new GenericType<List<TaskDto>>() {}));
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
+
+    public List<TaskBean> findAll(TaskGroupBean group)
+    {
+        try (Response response = target("/tasks").queryParam("groupId", id(group))
+                .request(MediaType.APPLICATION_JSON).get())
+        {
+            requireSuccess(response);
+            return Mappings.toBean(response.readEntity(new GenericType<List<TaskDto>>() {}));
+        }
+        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
+    }
+
+    // ── find by id ────────────────────────────────────────────────────────────
 
     public Optional<TaskBean> findById(long id)
     {
@@ -99,9 +116,11 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public List<TaskBean> findGroupTasksWithRelated(long groupId)
+    // ── find with related ─────────────────────────────────────────────────────
+
+    public List<TaskBean> findGroupTasksWithRelated(TaskGroupBean group)
     {
-        try (Response response = target("/tasks/group/" + groupId + "/with-related")
+        try (Response response = target("/tasks/group/" + id(group) + "/with-related")
                 .request(MediaType.APPLICATION_JSON).get())
         {
             requireSuccess(response);
@@ -110,15 +129,16 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
+    // ── create / update / delete ──────────────────────────────────────────────
+
     /**
      * Creates a task. The bean's {@code taskGroup()} must be non-null and persisted (id ≠ null)
      * since tasks must always belong to a group.
      */
     public TaskBean create(TaskBean bean)
     {
-        Long groupId = bean.taskGroup().id();
-        if (groupId == null) throw new IllegalArgumentException("bean.taskGroup().id() is null — persist the group first");
-        var request = new TaskCreateRequest(
+        long groupId = id(bean.taskGroup());
+        var request  = new TaskCreateRequest(
             bean.name(), groupId,
             bean.description().orElse(null),
             bean.plannedStart().orElse(null),
@@ -135,10 +155,10 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskBean update(long id, TaskBean bean)
+    public TaskBean update(TaskBean bean)
     {
         TaskDto dto = Mappings.toDto(bean);
-        try (Response response = target("/tasks/" + id)
+        try (Response response = target("/tasks/" + id(bean))
                 .request(MediaType.APPLICATION_JSON)
                 .put(Entity.json(dto)))
         {
@@ -148,9 +168,20 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskBean moveToGroup(long taskId, long groupId)
+    public void delete(TaskBean bean)
     {
-        try (Response response = target("/tasks/" + taskId + "/group/" + groupId)
+        try (Response response = target("/tasks/" + id(bean)).request().delete())
+        {
+            requireSuccess(response);
+        }
+        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
+    }
+
+    // ── hierarchy ─────────────────────────────────────────────────────────────
+
+    public TaskBean moveToGroup(TaskBean task, TaskGroupBean group)
+    {
+        try (Response response = target("/tasks/" + id(task) + "/group/" + id(group))
                 .request(MediaType.APPLICATION_JSON)
                 .put(Entity.json("")))
         {
@@ -160,9 +191,9 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskBean setParentTask(long taskId, long parentId)
+    public TaskBean setParentTask(TaskBean task, TaskBean parent)
     {
-        try (Response response = target("/tasks/" + taskId + "/parent/" + parentId)
+        try (Response response = target("/tasks/" + id(task) + "/parent/" + id(parent))
                 .request(MediaType.APPLICATION_JSON)
                 .put(Entity.json("")))
         {
@@ -172,18 +203,20 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public void clearParentTask(long taskId)
+    public void clearParentTask(TaskBean task)
     {
-        try (Response response = target("/tasks/" + taskId + "/parent").request().delete())
+        try (Response response = target("/tasks/" + id(task) + "/parent").request().delete())
         {
             requireSuccess(response);
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public TaskBean addPredecessor(long taskId, long predId)
+    // ── predecessors / successors ─────────────────────────────────────────────
+
+    public TaskBean addPredecessor(TaskBean task, TaskBean predecessor)
     {
-        try (Response response = target("/tasks/" + taskId + "/predecessor/" + predId)
+        try (Response response = target("/tasks/" + id(task) + "/predecessor/" + id(predecessor))
                 .request(MediaType.APPLICATION_JSON)
                 .put(Entity.json("")))
         {
@@ -193,18 +226,19 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public void removePredecessor(long taskId, long predId)
+    public void removePredecessor(TaskBean task, TaskBean predecessor)
     {
-        try (Response response = target("/tasks/" + taskId + "/predecessor/" + predId).request().delete())
+        try (Response response = target("/tasks/" + id(task) + "/predecessor/" + id(predecessor))
+                .request().delete())
         {
             requireSuccess(response);
         }
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public List<TaskBean> findPredecessors(long taskId)
+    public List<TaskBean> findPredecessors(TaskBean task)
     {
-        try (Response response = target("/tasks/" + taskId + "/predecessors")
+        try (Response response = target("/tasks/" + id(task) + "/predecessors")
                 .request(MediaType.APPLICATION_JSON).get())
         {
             requireSuccess(response);
@@ -213,9 +247,9 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public List<TaskBean> findSuccessors(long taskId)
+    public List<TaskBean> findSuccessors(TaskBean task)
     {
-        try (Response response = target("/tasks/" + taskId + "/successors")
+        try (Response response = target("/tasks/" + id(task) + "/successors")
                 .request(MediaType.APPLICATION_JSON).get())
         {
             requireSuccess(response);
@@ -224,14 +258,7 @@ public class TaskClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public void delete(long id)
-    {
-        try (Response response = target("/tasks/" + id).request().delete())
-        {
-            requireSuccess(response);
-        }
-        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
-    }
+    // ── internals ─────────────────────────────────────────────────────────────
 
     private jakarta.ws.rs.client.WebTarget target(String path)
     {
@@ -242,6 +269,20 @@ public class TaskClient
     {
         if (response.getStatusInfo().getFamily() != Response.Status.Family.SUCCESSFUL)
             throw new RuntimeException("HTTP " + response.getStatus() + " " + response.getStatusInfo().getReasonPhrase());
+    }
+
+    private long id(TaskBean bean)
+    {
+        Long id = bean.id();
+        if (id == null) throw new IllegalArgumentException("TaskBean has no id — persist it first");
+        return id;
+    }
+
+    private long id(TaskGroupBean bean)
+    {
+        Long id = bean.id();
+        if (id == null) throw new IllegalArgumentException("TaskGroupBean has no id — persist it first");
+        return id;
     }
 
     private ObjectMapper createObjectMapper()

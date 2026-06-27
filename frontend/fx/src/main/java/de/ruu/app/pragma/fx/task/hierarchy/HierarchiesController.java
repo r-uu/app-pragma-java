@@ -9,12 +9,16 @@ import jakarta.enterprise.context.Dependent;
 import jakarta.inject.Inject;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import de.ruu.lib.fx.control.autocomplete.textfield.TextFieldAutoCompleteClearableWithArrowButton;
+import de.ruu.lib.fx.control.autocomplete.textfield.TextFieldAutoCompleteClearableWithArrowButtonBuilder;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextArea;
@@ -26,13 +30,14 @@ import javafx.scene.control.TreeView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 @Dependent
 class HierarchiesController extends DefaultFXCController<Hierarchies, HierarchiesService>
@@ -150,8 +155,8 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     {
         try
         {
-            List<TaskBean> tasks = taskClient.findAll(group.id());
-            allTasks = taskClient.findAll(null);
+            List<TaskBean> tasks = taskClient.findAll(group);
+            allTasks = taskClient.findAll();
             TreeItem<TaskBean> root = buildSuperSubTree(tasks);
             Platform.runLater(() -> {
                 tvSuperSub.setRoot(root);
@@ -185,14 +190,14 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
         try
         {
-            List<TaskBean> preds = taskClient.findPredecessors(task.id());
+            List<TaskBean> preds = taskClient.findPredecessors(task);
             TreeItem<TaskBean> predRoot = new TreeItem<>();
             Set<Long> visited = new HashSet<>();
             visited.add(task.id());
             preds.forEach(p -> predRoot.getChildren().add(buildPredecessorNode(p, visited)));
             tvPredecessors.setRoot(predRoot);
 
-            List<TaskBean> succs = taskClient.findSuccessors(task.id());
+            List<TaskBean> succs = taskClient.findSuccessors(task);
             TreeItem<TaskBean> succRoot = new TreeItem<>();
             Set<Long> visitedSucc = new HashSet<>();
             visitedSucc.add(task.id());
@@ -214,7 +219,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             visited.add(task.id());
             try
             {
-                taskClient.findPredecessors(task.id())
+                taskClient.findPredecessors(task)
                           .forEach(p -> item.getChildren().add(buildPredecessorNode(p, visited)));
             }
             catch (Exception e) { log.warn("failed to load predecessors for {}", task.name(), e); }
@@ -233,7 +238,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             visited.add(task.id());
             try
             {
-                taskClient.findSuccessors(task.id())
+                taskClient.findSuccessors(task)
                           .forEach(s -> item.getChildren().add(buildSuccessorNode(s, visited)));
             }
             catch (Exception e) { log.warn("failed to load successors for {}", task.name(), e); }
@@ -284,7 +289,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             try
             {
                 task.name(name);
-                TaskBean updated = taskClient.update(task.id(), task);
+                TaskBean updated = taskClient.update(task);
                 item.setValue(updated);
                 fillDetail(item, tfIdSuperSub, tfNameSuperSub,
                            dpPlannedStartSuperSub, dpPlannedEndSuperSub,
@@ -310,7 +315,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         {
             try
             {
-                taskClient.delete(task.id());
+                taskClient.delete(task);
                 reloadCurrentGroup();
             }
             catch (Exception e) { log.error("failed to delete task", e); showError("Aufgabe löschen", e); }
@@ -333,7 +338,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         {
             try
             {
-                taskClient.addPredecessor(centerTask.id(), pred.id());
+                taskClient.addPredecessor(centerTask, pred);
                 reloadSidePanels(centerTask);
             }
             catch (Exception e) { log.error("failed to add predecessor", e); showError("Vorgänger hinzufügen", e); }
@@ -368,7 +373,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
         try
         {
-            taskClient.removePredecessor(centerTask.id(), pred.id());
+            taskClient.removePredecessor(centerTask, pred);
             reloadSidePanels(centerTask);
         }
         catch (Exception e) { log.error("failed to remove predecessor", e); showError("Vorgänger entfernen", e); }
@@ -390,7 +395,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
         {
             try
             {
-                taskClient.addPredecessor(succ.id(), centerTask.id());
+                taskClient.addPredecessor(succ, centerTask);
                 reloadSidePanels(centerTask);
             }
             catch (Exception e) { log.error("failed to add successor", e); showError("Nachfolger hinzufügen", e); }
@@ -425,7 +430,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
         try
         {
-            taskClient.removePredecessor(succ.id(), centerTask.id());
+            taskClient.removePredecessor(succ, centerTask);
             reloadSidePanels(centerTask);
         }
         catch (Exception e) { log.error("failed to remove successor", e); showError("Nachfolger entfernen", e); }
@@ -454,7 +459,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
 
         try
         {
-            TaskBean updated = taskClient.update(task.id(), task);
+            TaskBean updated = taskClient.update(task);
             sel.setValue(updated);
         }
         catch (Exception e) { log.error("failed to save task data for {}", task.name(), e); showError("Speichern", e); }
@@ -541,7 +546,7 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
             try
             {
                 task.name(name);
-                TaskBean updated = taskClient.update(task.id(), task);
+                TaskBean updated = taskClient.update(task);
                 item.setValue(updated);
                 fillDetail(item, tfId, tfName, dpStart, dpEnd, taDesc, cbClosed, btnSave);
             }
@@ -558,22 +563,34 @@ class HierarchiesController extends DefaultFXCController<Hierarchies, Hierarchie
     private Optional<TaskBean> pickTask(String title, Set<Long> excludedIds)
     {
         List<TaskBean> choices = allTasks.stream()
-                                         .filter(t -> t.id() != null && !excludedIds.contains(t.id()))
-                                         .toList();
+                .filter(t -> t.id() != null && !excludedIds.contains(t.id()))
+                .sorted(Comparator.<TaskBean, String>comparing(t -> t.taskGroup().name())
+                                  .thenComparing(t -> t.name()))
+                .toList();
         if (choices.isEmpty()) return Optional.empty();
 
-        Map<String, TaskBean> byLabel = new LinkedHashMap<>();
-        for (TaskBean t : choices)
-        {
-            String group = t.taskGroup().name();
-            byLabel.put(group + " / " + t.name(), t);
-        }
-        List<String> labels = List.copyOf(byLabel.keySet());
-        ChoiceDialog<String> dlg = new ChoiceDialog<>(labels.get(0), labels);
+        Function<TaskBean, String> label = t -> t.taskGroup().name() + " / " + t.name();
+
+        TextFieldAutoCompleteClearableWithArrowButton<TaskBean> field =
+                TextFieldAutoCompleteClearableWithArrowButtonBuilder.<TaskBean>create()
+                        .items(choices)
+                        .suggestionFilter((t, text) -> label.apply(t).toLowerCase().contains(text.toLowerCase()))
+                        .comparator(Comparator.comparing(label))
+                        .textProvider(label)
+                        .prompt("Aufgabe wählen oder tippen …")
+                        .build();
+        field.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(field, Priority.ALWAYS);
+
+        Dialog<TaskBean> dlg = new Dialog<>();
         dlg.setTitle(title);
         dlg.setHeaderText(null);
-        dlg.setContentText("Aufgabe:");
-        return dlg.showAndWait().map(byLabel::get);
+        dlg.getDialogPane().setContent(field);
+        dlg.getDialogPane().setPrefWidth(420);
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dlg.setResultConverter(bt -> bt == ButtonType.OK ? field.valueProperty().get() : null);
+
+        return dlg.showAndWait().filter(t -> t != null);
     }
 
     /** Collects all task values from a tree (all levels). */
