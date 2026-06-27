@@ -19,6 +19,10 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -27,6 +31,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Path("/tasks")
 @RequestScoped
@@ -39,22 +44,32 @@ public class TaskResource
     private EntityManager em;
 
     @GET
-    public List<TaskDto> findAll(@QueryParam("groupId") Long groupId)
+    public List<TaskDto> findAll(
+            @QueryParam("groupId") Long    groupId,
+            @QueryParam("page")    Integer page,
+            @QueryParam("size")    Integer size)
     {
+        int offset = page != null && page > 0 ? page * effectiveSize(size) : 0;
         if (groupId != null) {
             return em.createQuery("SELECT t FROM TaskJPA t WHERE t.taskGroup.id = :gid", TaskJPA.class)
                      .setParameter("gid", groupId)
+                     .setFirstResult(offset)
+                     .setMaxResults(effectiveSize(size))
                      .getResultList()
                      .stream()
                      .map(Mappings::toDto)
                      .toList();
         }
         return em.createQuery("SELECT t FROM TaskJPA t", TaskJPA.class)
+                 .setFirstResult(offset)
+                 .setMaxResults(effectiveSize(size))
                  .getResultList()
                  .stream()
                  .map(Mappings::toDto)
                  .toList();
     }
+
+    private static int effectiveSize(Integer size) { return (size != null && size > 0) ? size : Integer.MAX_VALUE; }
 
     @GET
     @Path("/{id}")
@@ -89,7 +104,7 @@ public class TaskResource
     }
 
     @POST
-    public Response create(TaskCreateRequest request)
+    public Response create(@Valid TaskCreateRequest request)
     {
         if (request.groupId() == null) throw new BadRequestException("groupId is required");
         TaskGroupJPA group = em.find(TaskGroupJPA.class, request.groupId());
@@ -105,9 +120,11 @@ public class TaskResource
 
     @PUT
     @Path("/{id}")
-    public TaskDto update(@PathParam("id") Long id, TaskDto dto)
+    public TaskDto update(@PathParam("id") Long id, @Valid TaskDto dto)
     {
         TaskJPA entity = requireTask(id);
+        if (!Objects.equals(entity.version(), dto.version()))
+            throw new WebApplicationException(Response.Status.CONFLICT);
         entity.name       (dto.name());
         entity.description(dto.description().orElse(null));
         entity.plannedStart(dto.plannedStart().orElse(null));
@@ -205,7 +222,8 @@ public class TaskResource
     }
 
     public record TaskCreateRequest(
-        String name, Long groupId,
+        @NotBlank String name,
+        @NotNull  Long groupId,
         @Nullable String description,
         @Nullable LocalDate plannedStart,
         @Nullable LocalDate plannedEnd,

@@ -63,6 +63,13 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
     private List<TaskBean> currentTasks = List.of();
 
+    /** True when a user-initiated field change has not yet been saved. */
+    private boolean dirty       = false;
+    /** True while we are programmatically filling form fields — suppresses dirty tracking. */
+    private boolean updating    = false;
+    /** True while we are programmatically reverting a selection — prevents listener re-entry. */
+    private boolean handlingNav = false;
+
     // ── initialization ───────────────────────────────────────────────────────
 
     @Override
@@ -75,7 +82,17 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         cbGroups.setCellFactory(lv -> groupCell());
         cbGroups.setButtonCell(groupCell());
         cbGroups.getSelectionModel().selectedItemProperty()
-                .addListener((obs, old, sel) -> { if (sel != null) loadGroup(sel); });
+                .addListener((obs, old, sel) -> {
+                    if (handlingNav || sel == null) return;
+                    if (!confirmDiscardChanges()) {
+                        handlingNav = true;
+                        cbGroups.getSelectionModel().select(old);
+                        handlingNav = false;
+                        return;
+                    }
+                    dirty = false;
+                    loadGroup(sel);
+                });
 
         configureDatePicker(dtPckrStart);
         configureDatePicker(dtPckrEnd);
@@ -88,10 +105,23 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         ttv.setRoot(new TreeItem<>());
         ttv.setColumnResizePolicy(TreeTableView.UNCONSTRAINED_RESIZE_POLICY);
         ttv.getSelectionModel().selectedItemProperty()
-           .addListener((obs, old, sel) -> onTaskSelected(sel));
+           .addListener((obs, old, sel) -> {
+               if (handlingNav) return;
+               if (!confirmDiscardChanges()) {
+                   handlingNav = true;
+                   ttv.getSelectionModel().select(old);
+                   handlingNav = false;
+                   return;
+               }
+               dirty = false;
+               onTaskSelected(sel);
+           });
 
         btnSaveDates.setDisable(true);
         btnSaveDates.setOnAction(e -> saveDates());
+
+        dtPckrTaskStart.valueProperty().addListener((obs, o, n) -> { if (!updating) dirty = true; });
+        dtPckrTaskEnd  .valueProperty().addListener((obs, o, n) -> { if (!updating) dirty = true; });
 
         loadGroups();
     }
@@ -223,17 +253,26 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
 
     private void onTaskSelected(TreeItem<TaskBean> sel)
     {
-        if (sel == null || sel.getValue() == null)
+        updating = true;
+        try
         {
-            dtPckrTaskStart.setValue(null);
-            dtPckrTaskEnd  .setValue(null);
-            btnSaveDates.setDisable(true);
-            return;
+            if (sel == null || sel.getValue() == null)
+            {
+                dtPckrTaskStart.setValue(null);
+                dtPckrTaskEnd  .setValue(null);
+                btnSaveDates.setDisable(true);
+                return;
+            }
+            TaskBean task = sel.getValue();
+            dtPckrTaskStart.setValue(task.plannedStart().orElse(null));
+            dtPckrTaskEnd  .setValue(task.plannedEnd()  .orElse(null));
+            btnSaveDates.setDisable(task.id() == null);
         }
-        TaskBean task = sel.getValue();
-        dtPckrTaskStart.setValue(task.plannedStart().orElse(null));
-        dtPckrTaskEnd  .setValue(task.plannedEnd()  .orElse(null));
-        btnSaveDates.setDisable(task.id() == null);
+        finally
+        {
+            updating = false;
+            dirty    = false;
+        }
     }
 
     private void saveDates()
@@ -248,6 +287,7 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
         try
         {
             TaskBean updated = taskClient.update(task);
+            dirty = false;
             currentTasks = new ArrayList<>(currentTasks);
             currentTasks.replaceAll(t -> t.id() != null && t.id().equals(updated.id()) ? updated : t);
             sel.setValue(updated);
@@ -264,6 +304,17 @@ class GanttController extends DefaultFXCController<Gantt, GanttService> implemen
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    private boolean confirmDiscardChanges()
+    {
+        if (!dirty) return true;
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Es gibt ungespeicherte Änderungen. Wirklich verwerfen?",
+                ButtonType.OK, ButtonType.CANCEL);
+        confirm.setTitle("Ungespeicherte Änderungen");
+        confirm.setHeaderText(null);
+        return confirm.showAndWait().filter(bt -> bt == ButtonType.OK).isPresent();
+    }
 
     private void configureDatePicker(DatePicker dp)
     {

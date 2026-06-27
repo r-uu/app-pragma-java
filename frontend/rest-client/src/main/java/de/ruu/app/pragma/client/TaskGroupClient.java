@@ -36,8 +36,9 @@ import java.util.Optional;
 @Singleton
 public class TaskGroupClient
 {
-    private final String host = ConfigProvider.getConfig().getValue("pragma.rest-api.host", String.class);
-    private final int    port = ConfigProvider.getConfig().getValue("pragma.rest-api.port", Integer.class);
+    private final String scheme = ConfigProvider.getConfig().getValue("pragma.rest-api.scheme", String.class);
+    private final String host   = ConfigProvider.getConfig().getValue("pragma.rest-api.host",   String.class);
+    private final int    port   = ConfigProvider.getConfig().getValue("pragma.rest-api.port",   Integer.class);
 
     private Client client;
 
@@ -113,15 +114,6 @@ public class TaskGroupClient
         catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
     }
 
-    public void deleteAll()
-    {
-        try (Response response = target("/task-groups").request().delete())
-        {
-            requireSuccess(response);
-        }
-        catch (ProcessingException e) { throw new RuntimeException("communication error", e); }
-    }
-
     private long id(TaskGroupBean bean)
     {
         Long id = bean.id();
@@ -131,7 +123,7 @@ public class TaskGroupClient
 
     private jakarta.ws.rs.client.WebTarget target(String path)
     {
-        return client.target("http://" + host + ":" + port + "/pragma/api" + path);
+        return client.target(scheme + "://" + host + ":" + port + "/pragma/api" + path);
     }
 
     private void requireSuccess(Response response)

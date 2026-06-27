@@ -3,6 +3,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
@@ -24,10 +25,10 @@
             <Label fx:id="lblStatus" style="-fx-font-size: 11px; -fx-text-fill: gray;"/>
         </HBox>
 
-        <!-- SmartGraph panel is added programmatically -->
-        <AnchorPane fx:id="graphContainer" VBox.vgrow="ALWAYS"
-                    maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-                    style="-fx-background-color: #1e1e2e;"/>
+        <!-- Graph canvas inside a scrollable/zoomable pane -->
+        <ScrollPane fx:id="graphContainer" VBox.vgrow="ALWAYS" fitToWidth="false" fitToHeight="false"
+                    pannable="true"
+                    style="-fx-background-color: #1e1e2e; -fx-background: #1e1e2e;"/>
 
     </VBox>
 </AnchorPane>

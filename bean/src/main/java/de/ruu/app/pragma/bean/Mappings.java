@@ -98,7 +98,7 @@ public final class Mappings
         TaskGroupDto cached = (TaskGroupDto) ctx.get(in);
         if (cached != null) return cached;
 
-        TaskGroupDto out = new TaskGroupDto(in.name());
+        TaskGroupDto out = new TaskGroupDto(in.name()).id(in.id()).version(in.version());
         ctx.put(in, out);
 
         in.tasks().ifPresent(tasks -> tasks.forEach(t -> toDto(t, ctx)));
@@ -114,7 +114,7 @@ public final class Mappings
         TaskGroupDto group = (TaskGroupDto) ctx.get(in.taskGroup());
         if (group == null) group = toDto(in.taskGroup(), ctx);
 
-        TaskDto out = new TaskDto(in.name(), group);
+        TaskDto out = new TaskDto(in.name(), group).id(in.id()).version(in.version());
         ctx.put(in, out);
 
         out.description (in.description().orElse(null));

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import de.ruu.app.pragma.core.Task;
 import de.ruu.app.pragma.core.TaskEntity;
+import jakarta.validation.constraints.NotBlank;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
@@ -19,7 +20,7 @@ public class TaskDto implements Task<TaskGroupDto, TaskDto>
     private final  UUID            jsonId  = UUID.randomUUID();
     private @Nullable Long         id;
     private @Nullable Short        version;
-    private           String       name;
+    private @NotBlank  String       name;
     private @Nullable TaskDto      parentTask;
     private           TaskGroupDto taskGroup;
     private @Nullable Set<TaskDto> subTasks;      // null = not yet loaded
@@ -54,9 +55,11 @@ public class TaskDto implements Task<TaskGroupDto, TaskDto>
     /** Package-private — called exclusively by TaskGroupDto.addTask() to avoid recursion. */
     void taskGroupInternal(TaskGroupDto group) { this.taskGroup = group; }
 
-    @Override public @Nullable Long                   id()                                 { return id;                              }
-    public    @Nullable Short                         version()                            { return version;                         }
-    @Override public           String                 name()                               { return name;                            }
+    @Override public @Nullable Long                   id()                                 { return id;                                                        }
+    public    @Nullable Short                         version()                            { return version;                                                   }
+    @Override public           String                 name()                               { return name;                                                      }
+    public             TaskDto                        id     (@Nullable Long  id)          { this.id      = id;      return this; }
+    public             TaskDto                        version(@Nullable Short v)           { this.version = v;       return this; }
     @Override public           TaskDto                name(String name)                    { this.name = Objects.requireNonNull(name, "name"); return this; }
     @Override public           Optional<TaskDto>      parentTask()                         { return Optional.ofNullable(parentTask); }
     @Override public           TaskDto                parentTask(@Nullable TaskDto parent) { this.parentTask = parent; return this;  }

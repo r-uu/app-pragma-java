@@ -16,7 +16,8 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.Group;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -36,11 +37,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Queue;
 import java.util.Set;
 
 @Dependent
@@ -52,18 +51,18 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
     private static final double NODE_HEIGHT =  60;
     private static final double H_GAP      =  40;
     private static final double V_GAP      =  30;
-    private static final double PAD        =  20;   // canvas padding
+    private static final double PAD        = GraphLayout.PAD;
     private static final double ARC        =  12;
     private static final double ARROW_LEN  =  10;
     private static final double ARROW_ANG  =   0.4; // radians half-angle of arrowhead
     private static final double GRID       =  20;   // snap-to-grid resolution in pixels
-    private static final double STEP       = NODE_HEIGHT + V_GAP;
+    private static final double STEP       = GraphLayout.STEP;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     @FXML private ComboBox<TaskGroupBean> cbGroups;
     @FXML private Label                   lblStatus;
-    @FXML private AnchorPane              graphContainer;
+    @FXML private ScrollPane              graphContainer;
     @FXML private Button                  btnSaveLayout;
     @FXML private Button                  btnLoadLayout;
 
@@ -107,7 +106,12 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
             buildGraph(tasks);
             if (lblStatus != null) lblStatus.setText(tasks.size() + " tasks");
         }
-        catch (Exception e) { log.error("failed to load group {}", group.name(), e); }
+        catch (Exception e)
+        {
+            log.error("failed to load group {}", group.name(), e);
+            if (lblStatus != null) lblStatus.setText("Fehler: " + e.getMessage());
+            showError("Gruppe laden", e);
+        }
     }
 
     private void buildGraph(List<TaskBean> tasks)
@@ -158,11 +162,8 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         for (EdgeSpec spec : edges)
             canvas.getChildren().addAll(0, createArrow(spec.from(), spec.to()));
 
-        AnchorPane.setTopAnchor   (canvas, 0.0);
-        AnchorPane.setBottomAnchor(canvas, 0.0);
-        AnchorPane.setLeftAnchor  (canvas, 0.0);
-        AnchorPane.setRightAnchor (canvas, 0.0);
-        graphContainer.getChildren().setAll(canvas);
+        graphContainer.setContent(new Group(canvas));
+        addZoomSupport(canvas);
 
         currentNodeById = new HashMap<>(nodeById);
         btnSaveLayout.setDisable(currentNodeById.isEmpty());
@@ -358,88 +359,9 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
         }
     }
 
-    /**
-     * Returns the average y-position of already-placed predecessors within the same group.
-     * Falls back to {@link #PAD} when no predecessor has been placed yet (column-0 case).
-     */
-    private double avgPredY(Long id, Map<Long, TaskBean> byId, Map<Long, Double> yPos)
-    {
-        TaskBean task = byId.get(id);
-        if (task == null) return PAD;
-        List<Double> ys = new ArrayList<>();
-        task.predecessors().ifPresent(preds ->
-            preds.stream()
-                 .filter(p -> p.id() != null && yPos.containsKey(p.id()))
-                 .forEach(p -> ys.add(yPos.get(p.id())))
-        );
-        return ys.isEmpty() ? PAD : ys.stream().mapToDouble(d -> d).average().orElse(PAD);
-    }
-
-    /**
-     * Spreads a sorted list of target y-positions so that consecutive entries are
-     * at least {@link #STEP} apart.  Forward pass pushes nodes down; backward pass
-     * pulls them back up as close as possible to their original targets.
-     * Result is clamped to ≥ {@link #PAD}.
-     */
-    private List<Double> resolveOverlaps(List<Double> targets)
-    {
-        List<Double> r = new ArrayList<>(targets);
-
-        for (int i = 1; i < r.size(); i++)                          // push down
-            if (r.get(i) < r.get(i - 1) + STEP) r.set(i, r.get(i - 1) + STEP);
-
-        for (int i = r.size() - 2; i >= 0; i--)                    // pull up
-            r.set(i, Math.min(r.get(i), r.get(i + 1) - STEP));
-
-        double minY = r.stream().mapToDouble(d -> d).min().orElse(PAD);
-        if (minY < PAD) { double shift = PAD - minY; r.replaceAll(v -> v + shift); }
-
-        return r;
-    }
-
-    /** Topological layer assignment via Kahn's algorithm; ignores ghost predecessors. */
-    private Map<Long, Integer> computeLayers(Map<Long, TaskBean> byId)
-    {
-        Map<Long, Integer>    inDegree   = new HashMap<>();
-        Map<Long, List<Long>> successors = new HashMap<>();
-
-        for (TaskBean t : byId.values())
-        {
-            inDegree.putIfAbsent(t.id(), 0);
-            t.predecessors().ifPresent(preds ->
-            {
-                for (TaskBean pred : preds)
-                {
-                    if (pred.id() == null)            continue;
-                    if (!byId.containsKey(pred.id())) continue; // ghost → skip
-                    inDegree.merge(t.id(), 1, Integer::sum);
-                    successors.computeIfAbsent(pred.id(), k -> new ArrayList<>()).add(t.id());
-                }
-            });
-        }
-
-        Map<Long, Integer> layer = new HashMap<>();
-        Queue<Long>        queue = new LinkedList<>();
-        for (Map.Entry<Long, Integer> e : inDegree.entrySet())
-            if (e.getValue() == 0) { queue.add(e.getKey()); layer.put(e.getKey(), 0); }
-
-        Set<Long> visited = new HashSet<>();
-        while (!queue.isEmpty())
-        {
-            Long current      = queue.poll();
-            if (!visited.add(current)) continue;
-            int  currentLayer = layer.getOrDefault(current, 0);
-            for (Long succId : successors.getOrDefault(current, List.of()))
-            {
-                int newLayer = currentLayer + 1;
-                if (newLayer > layer.getOrDefault(succId, 0)) layer.put(succId, newLayer);
-                queue.add(succId);
-            }
-        }
-
-        byId.keySet().forEach(id -> layer.putIfAbsent(id, 0));
-        return layer;
-    }
+    private double             avgPredY      (Long id, Map<Long, TaskBean> byId, Map<Long, Double> yPos) { return GraphLayout.avgPredY(id, byId, yPos);      }
+    private List<Double>       resolveOverlaps(List<Double> targets)                                      { return GraphLayout.resolveOverlaps(targets);        }
+    private Map<Long, Integer> computeLayers  (Map<Long, TaskBean> byId)                                  { return GraphLayout.computeLayers(byId);             }
 
     private record EdgeSpec(Group from, Group to) {}
 
@@ -509,6 +431,17 @@ class GraphController extends DefaultFXCController<Graph, GraphService> implemen
             }
         }
         if (lblStatus != null) lblStatus.setText(currentNodeById.size() + " tasks  (layout: " + applied + " nodes)");
+    }
+
+    private void addZoomSupport(Pane canvas)
+    {
+        graphContainer.setOnScroll(event -> {
+            double factor = event.getDeltaY() > 0 ? 1.1 : 1.0 / 1.1;
+            double next = Math.max(0.1, Math.min(canvas.getScaleX() * factor, 5.0));
+            canvas.setScaleX(next);
+            canvas.setScaleY(next);
+            event.consume();
+        });
     }
 
     private FileChooser layoutFileChooser(String title)

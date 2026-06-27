@@ -46,8 +46,9 @@ import java.util.Optional;
 @Singleton
 public class TaskClient
 {
-    private final String host = ConfigProvider.getConfig().getValue("pragma.rest-api.host", String.class);
-    private final int    port = ConfigProvider.getConfig().getValue("pragma.rest-api.port", Integer.class);
+    private final String scheme = ConfigProvider.getConfig().getValue("pragma.rest-api.scheme", String.class);
+    private final String host   = ConfigProvider.getConfig().getValue("pragma.rest-api.host",   String.class);
+    private final int    port   = ConfigProvider.getConfig().getValue("pragma.rest-api.port",   Integer.class);
 
     private Client client;
 
@@ -262,7 +263,7 @@ public class TaskClient
 
     private jakarta.ws.rs.client.WebTarget target(String path)
     {
-        return client.target("http://" + host + ":" + port + "/pragma/api" + path);
+        return client.target(scheme + "://" + host + ":" + port + "/pragma/api" + path);
     }
 
     private void requireSuccess(Response response)

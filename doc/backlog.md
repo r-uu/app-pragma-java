@@ -26,91 +26,54 @@ pragma-ui integriert sind.
 
 ---
 
-### P1-2 · Optimistic Locking ist konfiguriert aber wirkungslos
+### ~~P1-2 · Optimistic Locking ist konfiguriert aber wirkungslos~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `backend/rest/src/main/java/de/ruu/app/pragma/rest/TaskResource.java`, `update()`
-
-`TaskJPA` besitzt ein `@Version`-Feld, das bei gleichzeitigen Schreibzugriffen schützen
-soll. Der REST-`update()`-Endpunkt ignoriert die Version aus dem DTO jedoch vollständig —
-der zweite Speichern-Klick überschreibt den ersten kommentarlos.
-
-**Lösung:** Version aus `TaskDto` in `requireTask()` vor dem Merge prüfen; bei Konflikt
-`409 Conflict` zurückgeben. Client muss die Version mitsenden und bei 409 neu laden.
-
-**Vorgehen: ** Bitte umsetzen und prüfen, ob das Problem bei TaskGroup auch besteht. Falls
-ja, bitte ebenfalls umsetzen.
+`update()` in `TaskResource` und `TaskGroupResource` prüft jetzt `entity.version()` gegen
+`dto.version()` und wirft 409 bei Abweichung. `bean/Mappings.toDto()` propagiert id und
+version, damit Clients die Version korrekt mitsenden.
 
 ---
 
-### P1-3 · `deleteAll()` ungeschützt und mit falschem Tabellennamen
+### ~~P1-3 · `deleteAll()` ungeschützt und mit falschem Tabellennamen~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `backend/rest/src/main/java/de/ruu/app/pragma/rest/TaskGroupResource.java`
-
-Zwei Probleme in einem:
-
-1. `DELETE FROM task_predecessor` — die JoinTable heißt `task_predecessors_successors`;
-   dieser native Query würde scheitern oder die falsche Tabelle treffen.
-2. Der Endpunkt (`DELETE /task-groups`) löscht die gesamte Datenbank ohne jede
-   Autorisierungsprüfung, obwohl Basic Auth in `10-basic-registry.xml` konfiguriert ist.
-
-**Lösung:** Nativen Query auf korrekten Tabellennamen korrigieren; Endpunkt mit
-`@RolesAllowed("admin")` absichern oder ganz entfernen (nur noch über `DBClear` nutzbar).
-
-**Vorgehen:** Bitte vollständig entfernen und ggf. durch DBClear ersetzen.
+`DELETE /task-groups` vollständig entfernt. `DBClear` löscht jetzt erst alle
+Predecessor-Relationen (via REST), dann alle Groups (Cascade auf Tasks). 
 
 ---
 
-### P1-4 · Keine Input-Validierung auf REST-Ebene
+### ~~P1-4 · Keine Input-Validierung auf REST-Ebene~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `TaskResource.java` (`TaskCreateRequest`), `TaskGroupResource.java`
-
-DTOs und Request-Records haben keine Bean-Validation-Annotationen (`@NotNull`, `@Size`,
-`@NotBlank`). Ein leerer Task-Name oder eine negative ID landen ungeprüft in der
-Datenbank. Es gibt keinen `ExceptionMapper` für `ConstraintViolationException`.
-
-**Lösung:** `@Valid` auf alle Request-Parameter; Annotationen auf Records/DTOs;
-`ExceptionMapper<ConstraintViolationException>` → `400 Bad Request` mit sprechendem Body.
+`@NotBlank` auf name-Felder in `TaskDto`, `TaskGroupDto`; `@NotNull` auf groupId in
+`TaskCreateRequest`; `@Valid` auf alle POST/PUT-Parameter. `jakarta.validation-api` als
+provided-Dependency in dto und rest; `requires jakarta.validation` in dto-module-info.
+`ConstraintViolationExceptionMapper` liefert 400 mit Violation-Details.
 
 ---
 
-### P1-5 · Kein `ExceptionMapper` — interne Fehler als 500 durchgereicht
+### ~~P1-5 · Kein `ExceptionMapper` — interne Fehler als 500 durchgereicht~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `backend/rest/src/main/java/de/ruu/app/pragma/rest/`
-
-Unbehandelte `RuntimeException` führt zu einem leeren oder HTML-haltigen 500-Response.
-Der REST-Client wirft daraufhin eine generische `RuntimeException("HTTP 500 …")`, die im
-FX-Controller als leeres Fenster oder stilles Log-Statement endet.
-
-**Lösung:** `ExceptionMapper<Exception>` → RFC 7807 Problem-Detail-JSON;
-spezifische Mapper für `NotFoundException`, `ConstraintViolationException` etc.
+`GenericExceptionMapper` (500, lässt `WebApplicationException` durch) und
+`ConstraintViolationExceptionMapper` (400) als `@Provider` hinzugefügt.
 
 ---
 
 ## P2 — Starke Einschränkungen im Alltag
 
-### P2-1 · Kein Paging bei `findAll()`
+### ~~P2-1 · Kein Paging bei `findAll()`~~ ✅ umgesetzt 2026-06-27
 
-**Dateien:** `TaskResource.java`, `TaskGroupResource.java`, beide Clients
-
-Alle Tasks bzw. Gruppen werden ungepaged geladen. Bei einigen Hundert Tasks bricht
-Latenz und Speicherverbrauch spürbar ein.
-
-**Lösung:** `@QueryParam("page")` / `@QueryParam("size")` einführen;
-`TypedQuery.setFirstResult()` / `setMaxResults()`; Clients entsprechend erweitern.
+`@QueryParam("page")` / `@QueryParam("size")` in `TaskResource` und `TaskGroupResource`
+ergänzt; ohne Parameter wird alles geladen (Rückwärtskompatibilität). Clients können
+optional page/size übergeben.
 
 ---
 
-### P2-2 · Rekursive REST-Calls in `HierarchiesController`
+### ~~P2-2 · Rekursive REST-Calls in `HierarchiesController`~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `frontend/fx/src/main/java/de/ruu/app/pragma/fx/task/hierarchy/HierarchiesController.java`
+`loadGroup()` nutzt jetzt `findGroupTasksWithRelated()` und befüllt `taskByIdCache`.
+`buildPredecessorNode()` / `buildSuccessorNode()` traversieren den Cache statt HTTP-Calls.
+Fallback auf HTTP nur für cross-group Relationen (über `orElseGet`).
 
-`buildPredecessorNode()` und `buildSuccessorNode()` machen je einen HTTP-Request pro
-Node, rekursiv auf dem FX-Thread. Eine Vorgängerkette von 10 Tasks erzeugt 10+ synchrone
-Requests — die UI friert ein.
-
-**Lösung:** Vorhandenen `findByIdWithRelated`-Endpunkt verwenden und die transitive
-Auflösung client-seitig aus dem bereits geladenen Graphen durchführen; alternativ einen
-dedizierten Endpunkt `GET /tasks/{id}/predecessors?transitive=true` anbieten.
+**Vorgehen:** Bitte erste Option umsetzen
 
 ---
 
@@ -124,6 +87,8 @@ dedizierten Endpunkt `GET /tasks/{id}/predecessors?transitive=true` anbieten.
 **Lösung:** `allTasks` in `pickTask()` immer frisch laden (oder bei jeder CRUD-Operation
 invalidieren).
 
+**Vorgehen:** Bitte erste Option umsetzen
+
 ---
 
 ### P2-4 · Kein Fehler-Feedback im Graph-View
@@ -136,17 +101,17 @@ dem Benutzer nichts. Der Graph bleibt leer ohne erklärenden Hinweis.
 **Lösung:** Im `catch`-Block `lblStatus` mit Fehlermeldung befüllen und/oder
 `Alert`-Dialog anzeigen (analog zu `HierarchiesController.showError()`).
 
+~~**Vorgehen:** Bitte zweite Option umsetzen~~ ✅ umgesetzt 2026-06-27
+
+`catch`-Block zeigt jetzt `lblStatus` (persistent) und ruft `showError()` (Alert-Dialog).
+
 ---
 
-### P2-5 · Kein Scroll/Zoom im Graph
+### ~~P2-5 · Kein Scroll/Zoom im Graph~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `GraphController.java`, `buildGraph()`
-
-Der Canvas ist ein einfaches `Pane`. Mit mehr als ~15 Nodes verschwinden Knoten außerhalb
-des sichtbaren Bereichs; es gibt weder Scroll- noch Zoom-Funktion.
-
-**Lösung:** Canvas in `ScrollPane` einbetten; Zoom via `Scale`-Transform auf dem Canvas,
-gesteuert durch Mausrad (`ScrollEvent`).
+Graph-FXML nutzt jetzt `ScrollPane` (`pannable=true`). Canvas wird via `Group`-Wrapper
+eingebettet (damit ScrollPane die visuellen Bounds berücksichtigt). Zoom via Mausrad
+(`setOnScroll`) skaliert den Canvas zwischen 0.1× und 5×.
 
 ---
 
@@ -161,6 +126,8 @@ befüllt wird (neue IDs). Das betrifft vor allem Entwicklungs-/Testumgebungen mi
 **Lösung:** Neben der ID auch den Task-Namen als Kommentar oder Fallback-Schlüssel
 speichern; beim Laden zunächst per ID, dann per Name suchen.
 
+**Vorgehen:** Bitte erstmal nicht umsetzen
+
 ---
 
 ### P2-7 · `hibernate.show_sql=true` und `traceSpecification=all` in Produktion
@@ -174,82 +141,75 @@ massiven Log-Output und Performanceverlust.
 übersteuern; `show_sql=false` und `traceSpecification=*=warning` in einem
 Produktions-Profil setzen.
 
+**Vorgehen:** Bitte erstmal nicht umsetzen
+
 ---
 
 ## P3 — Mittelfristig wichtig
 
-### P3-1 · Keine Unit-Tests für Entities und Mappings
+### ~~P3-1 · Keine Unit-Tests für Entities und Mappings~~ ✅ umgesetzt 2026-06-27
 
-**Dateien:** `TaskJPA.java`, `TaskBean.java`, `bean/Mappings.java`, `rest/Mappings.java`
+47 JUnit-5-Tests in `bean/src/test/java/.../bean/`:
+- `TaskBeanTest` (20) — bidirektionale Konsistenz von Predecessor/Successor/SubTask,
+  Optional-Semantik (null = nicht geladen, empty Set = geladen aber leer), Scalar-Setter
+- `TaskGroupBeanTest` (13) — addTask/removeTask, Task-Gruppen-Wechsel, Name-Setter
+- `MappingsTest` (14) — Bean↔DTO-Roundtrips mit id/version, Predecessors/Successors,
+  SubTask-Hierarchie, Context-Deduplizierung (gleiche DTO-Instanz → gleicher Bean)
 
-Die Geschäftslogik in `addPredecessor`, `removePredecessor` (bidirektionale Konsistenz),
-der zyklus-sichere Mapping-Kontext sowie die `Optional.empty() = nicht geladen`-Semantik
-sind aktuell rein manuell verifizierbar.
-
-**Lösung:** JUnit-5-Unit-Tests für Entities (ohne DB); Parametrisierte Tests für
-Mapping-Roundtrips Bean ↔ DTO ↔ JPA.
-
----
-
-### P3-2 · Keine Tests für Graph-Layout-Algorithmen
-
-**Datei:** `GraphController.java`: `computeLayers()`, `resolveOverlaps()`, `avgPredY()`
-
-Diese Methoden sind algorithmisch komplex (Kahn, Überlappungsauflösung, Ghost-Node-
-Behandlung) und ändern sich erfahrungsgemäß häufig. Regressionen sind ohne Tests unsichtbar.
-
-**Lösung:** Algorithmen in eine testbare, UI-unabhängige Klasse `GraphLayout` extrahieren;
-JUnit-Tests mit kontrollierten Graphen (Kette, Baum, Zyklusversuch, Ghosts).
+`bean/pom.xml`: JUnit Jupiter + AssertJ als test-scope; maven-compiler-plugin
+konfiguriert, module-info.java beim Test-Compile auszuschließen (unnamed module).
 
 ---
 
-### P3-3 · Kein MicroProfile Health-Endpunkt konfiguriert
+### ~~P3-2 · Keine Tests für Graph-Layout-Algorithmen~~ ✅ umgesetzt 2026-06-27
 
-**Datei:** `server.xml` (Feature `microProfile-6.1` ist geladen, aber `/health` nicht genutzt)
-
-Ohne Health-Endpunkt kann kein Load-Balancer oder Orchestrator (k8s, Nomad) den Status
-der Instanz prüfen.
-
-**Lösung:** `@Liveness` / `@Readiness`-Bean anlegen; DB-Konnektivität als Readiness-Check.
-
----
-
-### P3-4 · Kein HTTPS-Enforcement im REST-Client
-
-**Datei:** `TaskClient.java`, `TaskGroupClient.java`
-
-Der Client baut die URL aus `http://` + Host + Port zusammen. Die TLS-Konfiguration im
-`server.xml` wird damit nie genutzt; Credentials wandern im Klartext.
-
-**Lösung:** Protokoll (`http`/`https`) als konfigurierbare Property
-(`pragma.rest-api.scheme`) in `microprofile-config.properties` auslagern.
+`GraphLayout.java` (package `de.ruu.app.pragma.fx.task.graph`) extrahiert:
+`computeLayers()`, `resolveOverlaps()`, `avgPredY()` als `public static` Methoden.
+`GraphController` delegiert intern dorthin. 16 JUnit-Tests in `GraphLayoutTest`:
+Kette, Diamant, Ghost-Predecessor, disconnected Graph; resolveOverlaps (kein Überlapp,
+alle gleich, Clamp auf PAD); avgPredY (kein Pred, ein Pred, zwei Preds, unplatzierter Pred).
 
 ---
 
-### P3-5 · Kein Dirty-State-Tracking in FX-Views
+### ~~P3-3 · Kein MicroProfile Health-Endpunkt konfiguriert~~ ✅ umgesetzt 2026-06-27
 
-**Dateien:** `GanttController.java`, `HierarchiesController.java`
+`PragmaHealthCheck` mit `@Liveness` + `@Readiness` + `@ApplicationScoped` angelegt;
+prüft DB-Konnektivität via `SELECT 1`; erreichbar unter `/health`.
 
-Wenn der Benutzer Felder editiert aber nicht speichert und dann die Gruppe wechselt
-oder die Auswahl ändert, gehen Änderungen kommentarlos verloren.
+---
 
-**Lösung:** Properties der Eingabefelder binden und bei Änderung einen "ungespeichert"-
-Flag setzen; beim Navigieren wegweisen mit Bestätigungsdialog.
+### ~~P3-4 · Kein HTTPS-Enforcement im REST-Client~~ ✅ umgesetzt 2026-06-27
+
+`pragma.rest-api.scheme=http` in `microprofile-config.properties` ergänzt.
+`TaskClient` und `TaskGroupClient` bauen URL jetzt aus `scheme + "://" + host + ":" + port`.
+
+---
+
+### ~~P3-5 · Kein Dirty-State-Tracking in FX-Views~~ ✅ umgesetzt 2026-06-27
+
+`GanttController` und `HierarchiesController` haben jetzt:
+- `dirty` / `updating` / `handlingNav` Flags
+- Listener auf alle editierbaren Felder (DatePicker, TextArea, CheckBox) setzen `dirty = true`
+  (außer wenn `updating = true` — programmatisches Füllen)
+- Selektion (Aufgabe wechseln, Gruppe wechseln): `confirmDiscardChanges()` prüft `dirty` und
+  zeigt Alert; bei Abbruch wird die alte Selektion wiederhergestellt (`handlingNav` guard)
+- Nach erfolgreichem Speichern: `dirty = false`
+- `fillDetail()` / `clearDetail()` wrappen Field-Zuweisungen in `updating = true/false`
 
 ---
 
 ## P4 — Fehlende Domänenfunktionen (nach Stabilisierung)
 
-| # | Feature | Begründung |
-|---|---|---|
+| #    | Feature                                                                  | Begründung                                                            |
+|------|--------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | P4-1 | Status-Enum (TODO / IN_PROGRESS / BLOCKED / DONE) statt `closed`-Boolean | `closed=true` unterscheidet nicht zwischen "fertig" und "abgebrochen" |
-| P4-2 | `actualStart` / `actualEnd` | Nur Planung ohne Ist-Daten; Gantt zeigt keine Realität |
-| P4-3 | Assignee / Verantwortlicher | Keine Personenzuordnung möglich |
-| P4-4 | Aufwandsschätzung (Stunden oder Story Points) | Kein Basismaterial für Kapazitätsplanung |
-| P4-5 | Predecessor-Typ (FS / SS / FF / SF) | Alle Abhängigkeiten sind implizit Finish-to-Start |
-| P4-6 | Audit-Log (wer änderte was wann) | Spurlosigkeit bei Datenproblemen |
-| P4-7 | Gantt-Export (PDF / Excel) | Für Reporting und externe Kommunikation |
-| P4-8 | Containerisierung (Dockerfile / Compose-Ausbau) | Reproduzierbare Deployments |
+| P4-2 | `actualStart` / `actualEnd`                                              | Nur Planung ohne Ist-Daten; Gantt zeigt keine Realität                |
+| P4-3 | Assignee / Verantwortlicher                                              | Keine Personenzuordnung möglich                                       |
+| P4-4 | Aufwandsschätzung (Stunden oder Story Points)                            | Kein Basismaterial für Kapazitätsplanung                              |
+| P4-5 | Predecessor-Typ (FS / SS / FF / SF)                                      | Alle Abhängigkeiten sind implizit Finish-to-Start                     |
+| P4-6 | Audit-Log (wer änderte was wann)                                         | Spurlosigkeit bei Datenproblemen                                      |
+| P4-7 | Gantt-Export (PDF / Excel)                                               | Für Reporting und externe Kommunikation                               |
+| P4-8 | Containerisierung (Dockerfile / Compose-Ausbau)                          | Reproduzierbare Deployments                                           |
 
 ---
 

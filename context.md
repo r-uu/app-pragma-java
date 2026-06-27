@@ -4,7 +4,7 @@
 
 Diese Datei dient als Kontext-Datei für AI-Agenten wie Claude Code oder Gemini. Sie soll bei jedem Chat mit AI-Agenten berücksichtigt und automatisch aktuell gehalten werden.
 
-[Übergeordnete Kontext-Datei](../app-lib-java/context.md) immer zuerst lesen, wird durch diese Datei ggf. überschrieben.
+[Übergeordnete Kontext-Datei](https://github.com/r-uu/lib-java/blob/main/context.md) immer zuerst lesen, wird durch diese Datei ggf. überschrieben.
 
 Diese Datei enthält einen [planerischen (Projektziele)](#projektziele) und einen [operativen Teil (Projektumsetzung)](#projektumsetzung).
 

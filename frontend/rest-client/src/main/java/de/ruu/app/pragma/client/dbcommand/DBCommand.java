@@ -13,7 +13,7 @@ public class DBCommand
         taskClient.postConstruct();
         try
         {
-            DBClear.run(groupClient);
+            DBClear.run(groupClient, taskClient);
             DBPopulate.run(groupClient, taskClient);
         }
         finally
