@@ -356,7 +356,7 @@ SmartGraph-Dependency bleibt im Classpath, wird aber nicht mehr aktiv genutzt.
 |---------------------|--------------------------------------|
 | `PragmaService`     | FXCService-Interface                 |
 | `Pragma`            | FXCView — lädt `Pragma.fxml`         |
-| `PragmaController`  | TabPane mit 3 Tabs: Hierarchies      |
+| `PragmaController`  | TabPane mit 3 Tabs: Hierarchies, Gantt, Graph (eingebettet via AnchorPane) |
 | `PragmaApp`         | FXCApp — Haupteinstiegspunkt         |
 | `PragmaAppRunner`   | `main()` — startet Weld CDI + JavaFX |
 
@@ -365,3 +365,9 @@ SmartGraph-Dependency bleibt im Classpath, wird aber nicht mehr aktiv genutzt.
 - `pragma fx:gantt`       → `GanttAppRunner`
 - `pragma fx:graph`       → `GraphAppRunner`
 - `pragma fx:pragma`      → `PragmaAppRunner` (Haupt-App mit allen 3 Views)
+
+#### Hinweise zur Implementierung
+
+- `HierarchiesController.pickTask()` lädt per `taskClient.findAll()` bei jedem Aufruf frische Daten — kein veralteter Cache-Stand im Vorgänger/Nachfolger-Dialog.
+- `GraphController` speichert/lädt Knotenpositionen als `.pgraph`-Datei (Properties-Format, Task-ID als Schlüssel). Wird nach `DBClear`+`DBPopulate` wertlos, da neue IDs vergeben werden (→ Backlog P2-6).
+- SmartGraph ist als Dependency deklariert, wird aber nicht für das Rendering verwendet (→ Backlog P3-6).
